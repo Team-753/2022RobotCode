@@ -31,7 +31,9 @@ class autonomous:
         self.theBigPlay = theBigPlay
         # self.loadPlayBook()
         if mode == "editor":
-            self.loadEditor()
+            pg.init()
+            self.size = width, height = 750, 750
+            self.screen = pg.display.set_mode(self.size)
         
     def loadPlayBook(self):
         filePath = os.getcwd() + './autonomous_algorithms/' + self.theBigPlay + '.csv'
@@ -41,10 +43,6 @@ class autonomous:
             self.points.append(list(row))
             
     def loadEditor(self):
-        pg.init()
-        self.size = width, height = 750, 750
-        self.screen = pg.display.set_mode(self.size)
-        self.pointList = []
         for point in self.theBigPlay:
             self.pointList.append([point.x + (self.size[0] / 2), -point.y + (self.size[1] / 2)])
         print(self.pointList)
@@ -74,6 +72,26 @@ class autonomous:
             i += 1
         pg.display.update()
     
+    def createCirclePath(self, coordinates, radius, circumferencePercentage, cumulativeAngle, directionInverted):
+        circumference = 2 * math.pi * radius
+        individualLineLength = circumference / 360
+        startingCoordinate = coordinates
+        if directionInverted:
+            cumulativeAngle = -cumulativeAngle
+        for i in range(circumferencePercentage):
+            endingCoordinate = (startingCoordinate[0] + (math.cos(math.radians(cumulativeAngle + 1)) * individualLineLength), startingCoordinate[1] - (math.sin(math.radians(cumulativeAngle + 1)) * individualLineLength))
+            adjustedStart, adjustedEnd = (startingCoordinate[0] + self.size[0] / 2, -startingCoordinate[1] + self.size[1] / 2), (endingCoordinate[0] + self.size[0] / 2, -endingCoordinate[1] + self.size[1] / 2)
+            pg.draw.line(self.screen, (255 - i / 2, 255 - i / 2, 255 - i / 2), adjustedStart, adjustedEnd, 5)
+            # pg.draw.circle(self.screen, (255, 255, 255), adjustedStart, 5)
+            print(str(adjustedStart) + ", " + str(adjustedEnd))
+            startingCoordinate = endingCoordinate
+            cumulativeAngle += 1
+
+        pg.display.update()
+        self.editor()
+            
+        
+    
     def cursorTarget(self, mousePOS):
         for point in self.pointList:
             pointHitbox = [[point[0] - self.pointRadius, point[0] + self.pointRadius], [point[1] - self.pointRadius, point[1] + self.pointRadius]]
@@ -92,11 +110,11 @@ class autonomous:
                 if event.type == pg.QUIT:
                     pg.quit()
                     quit()
-                elif pg.mouse.get_pressed() == (1, 0, 0):
+                elif pg.mouse.get_pressed() == (0, 0, 1):
                     mousePosition = pg.mouse.get_pos()
                     print(mousePosition)
                     self.cursorTarget(mousePosition)
-                elif pg.mouse.get_pressed() == (0, 0, 1):
+                elif pg.mouse.get_pressed() == (1, 0, 0):
                     mousePosition = pg.mouse.get_pos()
                     print(mousePosition)
                     self.updatePoint(mousePosition)
@@ -176,5 +194,7 @@ class path:
 
             return(x, y)
 
-robotPath1 = [path.controlPoint(-200,-200,math.pi/2,100), path.controlPoint(0,0,0,100), path.controlPoint(200, 200, math.pi/2, 100), path.controlPoint(-200,200,3*math.pi/2,100)]
-pathMaker = autonomous(robotPath1, 'editor')
+#robotPath1 = [path.controlPoint(-200,-200,math.pi/2,100), path.controlPoint(0,0,0,100), path.controlPoint(200, 200, math.pi/2, 100), path.controlPoint(-200,200,3*math.pi/2,100)]
+# pathMaker = autonomous(robotPath1, 'editor')
+circleThing = autonomous("yolo", "editor")
+circleThing.createCirclePath((0,0), 50, 270, 180, True)
