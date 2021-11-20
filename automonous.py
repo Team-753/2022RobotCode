@@ -77,7 +77,7 @@ class autonomous:
         individualLineLength = circumference / 360
         startingCoordinate = coordinates
         if directionInverted:
-            cumulativeAngle = -cumulativeAngle
+            cumulativeAngle = -cumulativeAngle # this doesnt seem to have any effect for whatever reason
         for i in range(circumferencePercentage):
             endingCoordinate = (startingCoordinate[0] + (math.cos(math.radians(cumulativeAngle + 1)) * individualLineLength), startingCoordinate[1] - (math.sin(math.radians(cumulativeAngle + 1)) * individualLineLength))
             adjustedStart, adjustedEnd = (startingCoordinate[0] + self.size[0] / 2, -startingCoordinate[1] + self.size[1] / 2), (endingCoordinate[0] + self.size[0] / 2, -endingCoordinate[1] + self.size[1] / 2)
