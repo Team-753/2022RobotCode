@@ -1,0 +1,28 @@
+{
+  "SwerveModules": {
+    "front_left": {
+      "Motor_ID_1": 1,
+      "Motor_ID_2": 2,
+      "encoder_ID": 0,
+      "encoderOffset": 0.0
+    },
+    "front_right": {
+      "Motor_ID_1": 3,
+      "Motor_ID_2": 4,
+      "encoder_ID": 1,
+      "encoderOffset": 0.0
+    },
+    "rear_left": {
+      "Motor_ID_1": 5,
+      "Motor_ID_2": 6,
+      "encoder_ID": 2,
+      "encoderOffset": 0.0
+    },
+    "rear_right": {
+      "Motor_ID_1": 7,
+      "Motor_ID_2": 8,
+      "encoder_ID": 3,
+      "encoderOffset": 0.0
+    }
+  }
+}
