@@ -16,7 +16,7 @@ py -3 -m pip install -U robotpy[ctre, navx]
 import wpilib
 import json
 import os
-from autonomous_controller import autonomousController
+
 
 class MyRobot(wpilib.TimedRobot):
 
@@ -34,7 +34,7 @@ class MyRobot(wpilib.TimedRobot):
     def autonomousInit(self):
         """This function is run once each time the robot enters autonomous mode."""
         auto_plan = wpilib.SmartDashboard.getString("Auto Plan", "default")
-        self.auto = autonomousController(auto_plan)
+        # self.auto = autonomousController(auto_plan)
         # self.timer.reset()
         # self.timer.start()
         self.auto.start()
