@@ -5,8 +5,6 @@ import navx
 import ctre
 import json
 import os
-import threading
-import time
 
 class driveTrain:
     def __init__(self, config):
@@ -28,6 +26,10 @@ class driveTrain:
         self.frontRight.initMotorEncoder()
         self.rearLeft.initMotorEncoder()
         self.rearRight.initMotorEncoder()
+        
+        self.easterEgg = "never"
+        self.orchestra = ctre.Orchestra()
+        self.orchestra.addInstrument(self.frontLeft.driveMotor, self.frontLeft.turnMotor, self.frontRight.driveMotor, self.frontRight.turnMotor, self.rearLeft.driveMotor, self.rearLeft.turnMotor, self.rearRight.driveMotor, self.rearRight.turnMotor)
 
     def rotateCartesianPlane(self, angle, x, y):
         newX = x*math.sin(angle) - y*math.cos(angle)
@@ -123,10 +125,8 @@ class driveTrain:
     def easterEgg(self):
         ''' Plays a pre-set tune on the motors;
             Nothing else will run while this is occuring. '''
-        self.frontLeft.easterEgg()
-        self.frontRight.easterEgg()
-        self.rearLeft.easterEgg()
-        self.rearRight.easterEgg()
+        self.orchestra.loadMusic(f"{os.getcwd()}./tunes/{self.easterEgg}.chrp")
+        self.orchestra.play()
     
 class swerveModule:
     def __init__(self, driveID, turnID, absoluteID, absoluteOffset, moduleName):
@@ -198,15 +198,4 @@ class swerveModule:
             jsonFile.write(json.dump(self.config, indent=2))
     
     def returnValues(self):
-        return (self.turnMotor.getSelectedSensorPosition(0), self.absoluteEncoder.getAbsolutePosition(), self.absoluteOffset)
-    
-    def easterEgg(self):
-        ''' Plays a little song '''
-        tune = () # format as a tuple of tuples where the first index of the tuple is the frequency of the note in Hertz and the second is the delay to the next note
-        for tone in tune:
-            delay = tone[1]
-            tone = tone[0]
-            self.driveMotor.set(ctre.TalonFXControlMode.MusicTone, tone)
-            self.turnMotor.set(ctre.TalonFXControlMode.MusicTone, tone)
-            time.sleep(delay)
-        
+        return (self.turnMotor.getSelectedSensorPosition(0), self.absoluteEncoder.getAbsolutePosition(), self.absoluteOffset)    
