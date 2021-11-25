@@ -5,6 +5,8 @@ import navx
 import ctre
 import json
 import os
+import threading
+import time
 
 class driveTrain:
     def __init__(self, config):
@@ -91,7 +93,7 @@ class driveTrain:
         ''' Call this when actually re-zeroing the motor absolutes '''
         self.frontLeft.zeroMotorEncoder()
         self.frontRight.zeroMotorEncoder()
-        self.reaerLeft.zeroMotorEncoder()
+        self.rearLeft.zeroMotorEncoder()
         self.rearRight.zeroMotorEncoder()
         
     def stationary(self):
@@ -117,6 +119,14 @@ class driveTrain:
         wpilib.SmartDashboard.putNumberArray("frontRight", frontRightValues)
         wpilib.SmartDashboard.putNumberArray("rearLeft", rearLeftValues)
         wpilib.SmartDashboard.putNumberArray("rearRight", rearRightValues)
+        
+    def easterEgg(self):
+        ''' Plays a pre-set tune on the motors;
+            Nothing else will run while this is occuring. '''
+        self.frontLeft.easterEgg()
+        self.frontRight.easterEgg()
+        self.rearLeft.easterEgg()
+        self.rearRight.easterEgg()
     
 class swerveModule:
     def __init__(self, driveID, turnID, absoluteID, absoluteOffset, moduleName):
@@ -153,19 +163,20 @@ class swerveModule:
     
     def move(self, magnitude, angle):
         ''' Magnitude with an input range for 0-1, and an angle of 0-360'''
-        encoderTarget = angle * self.CPRConversionFactor * self.turningGearRatio
+    
+        encoderTarget = (angle) * self.CPRConversionFactor * self.turningGearRatio
         self.turnMotor.set(self.turnMotorControlMode, encoderTarget)
         self.driveMotor.set(self.driveMotorControlMode, magnitude)
         
     def stationary(self):
         ''' Brakes and keeps the swerve module still '''
-        self.driveMotor.set(ctre.ControlMode.PercentOutput, 0)
-        self.turnMotor.set(ctre.ControlMode.PercentOutput, 0)
+        self.driveMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
+        self.turnMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
         
     def coast(self):
         ''' Coasts the swerve module '''
-        self.driveMotor.set(ctre.ControlMode.Disabled, 0)
-        self.turnMotor.set(ctre.ControlMode.Disabled, 0)
+        self.driveMotor.set(ctre.TalonFXControlMode.Disabled, 0)
+        self.turnMotor.set(ctre.TalonFXControlMode.Disabled, 0)
     
     def initMotorEncoder(self):
         ''' Called to actually set the encoder zero based off of absolute offset and position '''
@@ -188,4 +199,14 @@ class swerveModule:
     
     def returnValues(self):
         return (self.turnMotor.getSelectedSensorPosition(0), self.absoluteEncoder.getAbsolutePosition(), self.absoluteOffset)
+    
+    def easterEgg(self):
+        ''' Plays a little song '''
+        tune = () # format as a tuple of tuples where the first index of the tuple is the frequency of the note in Hertz and the second is the delay to the next note
+        for tone in tune:
+            delay = tone[1]
+            tone = tone[0]
+            self.driveMotor.set(ctre.TalonFXControlMode.MusicTone, tone)
+            self.turnMotor.set(ctre.TalonFXControlMode.MusicTone, tone)
+            time.sleep(delay)
         
