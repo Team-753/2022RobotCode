@@ -17,6 +17,7 @@ plays much, MUCH less of a headache.
 - An easy way to accomplish this is to simply record the output from the switches dictionary and index through the functions when looping through autonomous periodic.
 - Keep in mind: TeleopPeriodic is ran about every 20ms to 50x a second and so is auto periodic
 - Building on the first method mentioned is to instead of running new commands every 20ms, we instead should pick a time interval and run commands based on where the timer currently is and its corresponding dictionary.
+- Would most likely record without field orient to absolve any possible issues arising from that.
 
 '''
 
