@@ -18,6 +18,7 @@ import json
 import os
 import driveTrain
 import driverStation
+import autonomous
 
 
 class MyRobot(wpilib.TimedRobot):
@@ -35,11 +36,10 @@ class MyRobot(wpilib.TimedRobot):
 
     def autonomousInit(self):
         """This function is run once each time the robot enters autonomous mode."""
-        auto_plan = wpilib.SmartDashboard.getString("Auto Plan", "default")
+        auto_plan = wpilib.SmartDashboard.getString("Auto Plan", "getOffLine")
         # self.auto = autonomousController(auto_plan)
         # self.timer.reset()
         # self.timer.start()
-        self.auto.start()
 
     def autonomousPeriodic(self):
         """This function is called periodically during autonomous."""
@@ -52,10 +52,18 @@ class MyRobot(wpilib.TimedRobot):
 
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
-        self.drive.arcadeDrive(self.stick.getY(), self.stick.getX())
 
-    def disabledPeriodic(self) -> None:
-        return super().disabledPeriodic()
+    def disabledPeriodic(self):
+        ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
+        pass
+    
+    def testInit(self) -> None:
+        pass
+    
+    def testPeriodic(self):
+        ''' My intention with this function is to have the robot automatically run through
+            all of its subsystems and functions similar to autonomous but much more limited.'''
+        pass
 
 if __name__ == "__main__":
     wpilib.run(MyRobot)

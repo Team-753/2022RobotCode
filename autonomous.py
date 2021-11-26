@@ -8,6 +8,14 @@ path1 = trajectoryUtilities.serializeTrajectory(trajectoryUtilities.fromPathweav
 Timer = wpilib.timer.Timer()
 jsonFile = {}
 
+'''
+NOTE: Just thought of a mega-brained idea, instead of trying to follow a complicated digitally-determined path
+we record all the commands and their parameters that are called to the drivetrain and subsequent subsystems whilst in 
+a teleop path "recording" mode which can then be put into a large json file that can be better interpreted come autonomous.
+While this may lead to less accuracy due to human error, this would make the process of creating, programming, and executing autonomous
+plays much, MUCH less of a headache.
+
+'''
 
 def autonomousGo():
     Timer.start()
