@@ -16,6 +16,8 @@ py -3 -m pip install -U robotpy[ctre, navx]
 import wpilib
 import json
 import os
+import driveTrain
+import driverStation
 
 
 class MyRobot(wpilib.TimedRobot):
@@ -25,11 +27,11 @@ class MyRobot(wpilib.TimedRobot):
         This function is called upon program startup and
         should be used for any initialization code.
         """
-        self.left_motor = wpilib.Spark(0)
-        self.right_motor = wpilib.Spark(1)
-        self.drive = wpilib.drive.DifferentialDrive(self.left_motor, self.right_motor)
-        self.stick = wpilib.Joystick(1)
+        with open(f"{os.getcwd()}/config.json", "r") as f1:
+            self.config = json.load(f1)
         self.timer = wpilib.Timer()
+        self.driveTrain = driveTrain.driveTrain(self.config)
+        self.driverStation = driverStation.driverStation(self.config)
 
     def autonomousInit(self):
         """This function is run once each time the robot enters autonomous mode."""

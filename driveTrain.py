@@ -27,7 +27,10 @@ class driveTrain:
         self.rearLeft.initMotorEncoder()
         self.rearRight.initMotorEncoder()
         
-        self.easterEgg = "never"
+        self.navx = navx.AHRS.create_spi()
+        self.navx.reset()
+        
+        self.easterEgg = self.config["RobotDefaultSettings"]["easterEgg"]
         self.orchestra = ctre.Orchestra()
         self.orchestra.addInstrument(self.frontLeft.driveMotor, self.frontLeft.turnMotor, self.frontRight.driveMotor, self.frontRight.turnMotor, self.rearLeft.driveMotor, self.rearLeft.turnMotor, self.rearRight.driveMotor, self.rearRight.turnMotor)
 
@@ -36,14 +39,14 @@ class driveTrain:
         newY = x*math.cos(angle) + y*math.sin(angle)
         return(newX, newY)
 
-    def manualControl(self, joystickX, joystickY, joystickRotation):
+    def manualMove(self, joystickX, joystickY, joystickRotation):
         '''
         This method takes the joystick inputs from the driverStation class. 
         First checking to see if it is field oriented and compensating for the navx angle if it is.
-        
+        NOTE: The final angle may be in unit circle degrees and not in normal oriented degrees this is most likely the problem if the drivetrain has a 90 degree offset
         '''
         if self.fieldOrient:
-            angle = -1*navx.getAngle() + 90
+            angle = -1*self.navx.getAngle() + 90
             angle %= 360
             if angle < -180:
                 angle += 360
@@ -54,16 +57,16 @@ class driveTrain:
         else:
             translationVector = (joystickX, joystickY)
 
-        fLRotationVectorAngle = joystickRotation*(math.atan2(self.wheelBase, -1*self.trackWidth) - (math.pi/2))
-        fRRotationVectorAngle = joystickRotation*(math.atan2(self.wheelBase, self.trackWidth) - (math.pi/2))
-        rLRotationVectorAngle = joystickRotation*(math.atan2(-1*self.wheelBase, -1*self.trackWidth) - (math.pi/2))
-        rRRotationVectorAngle = joystickRotation*(math.atan2(-1*self.wheelBase, self.trackWidth) - (math.pi/2))
+        fLRotationVectorAngle = (math.atan2(self.wheelBase, -1*self.trackWidth) - (math.pi/2))
+        fRRotationVectorAngle = (math.atan2(self.wheelBase, self.trackWidth) - (math.pi/2))
+        rLRotationVectorAngle = (math.atan2(-1*self.wheelBase, -1*self.trackWidth) - (math.pi/2))
+        rRRotationVectorAngle = (math.atan2(-1*self.wheelBase, self.trackWidth) - (math.pi/2))
 
-        fLRotationVector = (math.cos(fLRotationVectorAngle), math.sin(fLRotationVectorAngle))
-        fRRotationVector = (math.cos(fRRotationVectorAngle), math.sin(fRRotationVectorAngle))
-        rLRotationVector = (math.cos(rLRotationVectorAngle), math.sin(rLRotationVectorAngle))
-        rRRotationVector = (math.cos(rRRotationVectorAngle), math.sin(rRRotationVectorAngle))
-
+        fLRotationVector = (joystickRotation*math.cos(fLRotationVectorAngle), joystickRotation*math.sin(fLRotationVectorAngle))
+        fRRotationVector = (joystickRotation*math.cos(fRRotationVectorAngle), joystickRotation*math.sin(fRRotationVectorAngle))
+        rLRotationVector = (joystickRotation*math.cos(rLRotationVectorAngle), joystickRotation*math.sin(rLRotationVectorAngle))
+        rRRotationVector = (joystickRotation*math.cos(rRRotationVectorAngle), joystickRotation*math.sin(rRRotationVectorAngle))
+        
         fLTranslationVector = (fLRotationVector[0] + translationVector[0], fLRotationVector[1] + translationVector[1])
         fRTranslationVector = (fRRotationVector[0] + translationVector[0], fRRotationVector[1] + translationVector[1])
         rLTranslationVector = (rLRotationVector[0] + translationVector[0], rLRotationVector[1] + translationVector[1])
@@ -78,7 +81,7 @@ class driveTrain:
         fRSpeed = math.sqrt((fRTranslationVector[0]**2) + (fRTranslationVector[1]**2))
         rLSpeed = math.sqrt((rLTranslationVector[0]**2) + (rLTranslationVector[1]**2))
         rRSpeed = math.sqrt((rRTranslationVector[0]**2) + (rRTranslationVector[1]**2))
-    
+
         maxSpeed = max(fLSpeed, fRSpeed, rLSpeed, rRSpeed)
         if maxSpeed > 1:
             fLSpeed /= maxSpeed
@@ -90,7 +93,7 @@ class driveTrain:
         self.frontRight.move(fRSpeed, fRAngle)
         self.rearLeft.move(rLSpeed, rLAngle)
         self.rearRight.move(rRSpeed, rRAngle)
-    
+        
     def zeroMotorEncoders(self):
         ''' Call this when actually re-zeroing the motor absolutes '''
         self.frontLeft.zeroMotorEncoder()
@@ -124,7 +127,7 @@ class driveTrain:
         
     def easterEgg(self):
         ''' Plays a pre-set tune on the motors;
-            Nothing else will run while this is occuring. '''
+            This can be interrupted by using pause or set on the TalonFX controllers'''
         self.orchestra.loadMusic(f"{os.getcwd()}./tunes/{self.easterEgg}.chrp")
         self.orchestra.play()
     
@@ -143,7 +146,8 @@ class swerveModule:
             # do something
             kPTurn, kITurn, kDTurn = 0, 0, 0
         self.CPRConversionFactor = 2048 / 360
-        self.turningGearRatio = 12.8
+        self.turningGearRatio = 12.8 # The steering motor gear ratio
+        self.drivingGearRatio = 8.14 # The driving motor gear ratio
         self.moduleName = moduleName
         
         self.driveMotor = ctre.TalonFX(driveID)
@@ -163,8 +167,7 @@ class swerveModule:
     
     def move(self, magnitude, angle):
         ''' Magnitude with an input range for 0-1, and an angle of 0-360'''
-    
-        encoderTarget = (angle) * self.CPRConversionFactor * self.turningGearRatio
+        encoderTarget = angle * self.CPRConversionFactor * self.turningGearRatio # this will be the source of lots of pain once we get our hands on the motors
         self.turnMotor.set(self.turnMotorControlMode, encoderTarget)
         self.driveMotor.set(self.driveMotorControlMode, magnitude)
         

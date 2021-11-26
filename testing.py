@@ -3,17 +3,6 @@ import math
 wheelBase = 48
 trackWidth = 36
 
-def angleConversion(angle):
-    if angle <= -90:
-        pass
-    elif angle >= 90:
-        angle -= 90
-    elif angle < 90 and angle >= 0:
-        angle = 90 - angle
-    elif angle > -90 and angle < 0:
-        angle = -1*(angle - 90)
-    return angle
-
 def manualControl(joystickX, joystickY, joystickRotation):
     translationVector = (joystickX, joystickY)
 
@@ -53,7 +42,7 @@ def manualControl(joystickX, joystickY, joystickRotation):
     print(f"{fRSpeed}, {fRAngle}")
     print(f"{rLSpeed}, {rLAngle}")
     print(f"{rRSpeed}, {rRAngle}")
-    print(f"Converted frontLeftAngle: {angleConversion(fLAngle)}")
+    #print(f"Converted frontLeftAngle: {angleConversion(fLAngle)}")
     
 def otherThing(x, y, z):
   robotLength = 48
@@ -85,7 +74,7 @@ def otherThing(x, y, z):
   print(f"{frontRightSpeed}, {frontRightAngle}")
   print(f"{rearLeftSpeed}, {rearLeftAngle}")
   print(f"{rearRightSpeed}, {rearRightAngle}")
-  print(f"Converted frontLeftAngle: {angleConversion(frontLeftAngle)}")
+  #print(f"Converted frontLeftAngle: {angleConversion(frontLeftAngle)}")
 
 print("Ben Code:")
 manualControl(-1, -1, 0)
