@@ -148,7 +148,8 @@ class MyRobot(wpilib.TimedRobot(period=0.02)):
     
     def stopAll(self):
         ''' Exactly as it says, stops all of the functions of the robot '''
-        pass
+        self.driveTrain.stationary()
+        # will add more as they come
 
 if __name__ == "__main__":
     wpilib.run(MyRobot)
