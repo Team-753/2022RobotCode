@@ -60,7 +60,7 @@ class MyRobot(wpilib.TimedRobot(period=0.02)):
         self.Timer = wpilib.Timer()
 
     def autonomousInit(self):
-        """This function is run once each time the robot enters autonomous mode."""
+        '''This function is run once each time the robot enters autonomous mode.'''
         autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
         with open(f"{os.getcwd()}./paths/{autoPlanName}.json", 'r') as plan:  
             self.autoPlan = json.dump(plan)
@@ -77,14 +77,16 @@ class MyRobot(wpilib.TimedRobot(period=0.02)):
         if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
             # auto is over
             self.Timer.stop()
-            self.driveTrain.stationary()
+            self.stopAll()
         else:
             self.switchActions(switches)
         self.autonomousIteration += 1
+        self.driveTrain.refreshValues()
 
     def teleopInit(self):
         self.navx.reset()
-    
+        self.driveTrain.refreshValues()
+        
     def teleopPeriodic(self):
         '''This function is called periodically during operator control.'''
         switches = self.driverStation.checkSwitches()
@@ -115,7 +117,7 @@ class MyRobot(wpilib.TimedRobot(period=0.02)):
                 # autonomous recording period has ended
                 self.recording = False
                 self.Timer.stop()
-                self.driveTrain.stationary()
+                self.stopAll()
                 wpilib.SmartDashboard.putBoolean("Recording", False)
                 dt_gmt = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
                 with open(f"{os.getcwd()}./paths/{dt_gmt}.json", 'w') as path:
@@ -124,6 +126,7 @@ class MyRobot(wpilib.TimedRobot(period=0.02)):
                 switches["time"] = self.Timer.get()
                 self.autonomousSwitchList.append(switches)
                 self.switchActions(switches)
+        self.driveTrain.refreshValues()
             
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''
