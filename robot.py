@@ -31,6 +31,7 @@ How to use:
 
 - Test Mode:
   - Records an autonomous path and exports it --ON THE ROBORIO-- using datetime and is located in paths, would recommend using winscp
+    to retrieve json
 
 Installing Dependencies:
 py -3.99 -m pip install robotpy robotpy-ctre robotpy-navx
