@@ -1,7 +1,8 @@
 import wpilib
+from robot import navx
 
 class driverStation:
-    def __init__(self, config):
+    def __init__(self, config: dict):
         self.driverStationUtil = wpilib.DriverStation()
         self.config = config
         
@@ -25,28 +26,32 @@ class driverStation:
         self.auxilaryInput = wpilib.XboxController(1)
     
     def checkSwitches(self):
-        switchList = {
+        switchDict = {
             "driverX": 0.0,
             "driverY": 0.0,
             "driverZ": 0.0,
-            "swapFieldOrient": False
+            "swapFieldOrient": False,
+            "playEasterEgg": False,
+            "fieldOrient": wpilib.SmartDashboard.getBoolean("fieldOrient", True),
+            "navxAngle": -1*navx.getAngle() + 90
         }
         if self.driverInputType != "disconnected":
             if self.driverInputType == "XboxController":
-                switchList["driverX"] = self.driverInput.Axis.kLeftX
-                switchList["driverY"] = self.driverInput.Axis.kLeftY
-                switchList["driverZ"] = self.driverInput.Axis.kRightX # NOTE: Use this for turning
+                switchDict["driverX"] = self.driverInput.Axis.kLeftX
+                switchDict["driverY"] = self.driverInput.Axis.kLeftY
+                switchDict["driverZ"] = self.driverInput.Axis.kRightX # NOTE: Use this for turning
                 '''
                 NOTE: Alternatively use this which uses the triggers for turning which may seem weird but could be more accurate:
-                switchList["driverZ"] = self.driverInput.Axis.kRightTrigger - self.driverInput.Axis.kLeftTrigger
+                switchDict["driverZ"] = self.driverInput.Axis.kRightTrigger - self.driverInput.Axis.kLeftTrigger
                 '''
                 
             else: # Joystick
-                switchList["driverX"] = self.driverInput.getX()
-                switchList["driverY"] = self.driverInput.getY()
-                switchList["driverZ"] = self.driverInput.getZ()
+                switchDict["driverX"] = self.driverInput.getX()
+                switchDict["driverY"] = self.driverInput.getY()
+                switchDict["driverZ"] = self.driverInput.getZ()
             # after this point is auxilary code
-            switchList["swapFieldOrient"] == self.driverInput.getBackButtonReleased()
+            switchDict["swapFieldOrient"] = self.auxilaryInput.getBackButtonReleased()
+            switchDict["playEasterEgg"] = self.auxilaryInput.getStartButtonReleased()
         else:
             self.checkDriverStationInputs()
-        return switchList
+        return switchDict

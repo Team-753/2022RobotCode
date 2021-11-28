@@ -3,25 +3,25 @@
     "frontLeft": {
       "motor_ID_1": 1,
       "motor_ID_2": 2,
-      "encoder_ID": 0,
+      "encoder_ID": 3,
       "encoderOffset": 0.0
     },
     "frontRight": {
-      "motor_ID_1": 3,
-      "motor_ID_2": 4,
-      "encoder_ID": 1,
+      "motor_ID_1": 4,
+      "motor_ID_2": 5,
+      "encoder_ID": 6,
       "encoderOffset": 0.0
     },
     "rearLeft": {
-      "motor_ID_1": 5,
-      "motor_ID_2": 6,
-      "encoder_ID": 2,
+      "motor_ID_1": 7,
+      "motor_ID_2": 8,
+      "encoder_ID": 9,
       "encoderOffset": 0.0
     },
     "rearRight": {
-      "motor_ID_1": 7,
-      "motor_ID_2": 8,
-      "encoder_ID": 3,
+      "motor_ID_1": 10,
+      "motor_ID_2": 11,
+      "encoder_ID": 12,
       "encoderOffset": 0.0
     }
   },
@@ -33,5 +33,15 @@
   "RobotDefaultSettings": {
     "fieldOrient": true,
     "easterEgg": "e"
+  },
+  "driverStation": {
+    "joystickDeadZones": {
+      "xDeadZone": 0.2,
+      "yDeadZone": 0.2,
+      "zDeadZone": 0.2
+    }
+  },
+  "matchSettings": {
+    "autonomousTime": 25
   }
 }

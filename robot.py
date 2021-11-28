@@ -9,19 +9,41 @@ GOALS:
     - Configuration file (preferabbly json) for most if not all robot settings
     - Communicate with vision using networktables
     - Get motor framework down (assume we are using talonfx controllers)
+    -- ALL COMPLETED
+TODO:
+- Not really anything as far as a bare bones only falcon drivetrain robot goes this is everything.
+- Still need to integrate vision but that is hard when you do not even know what your robot will be doing
+- Still need to integrate auxilary files but yet again without any auxiliary systems as of yet, this is impossible
+
+NOTE - Current Features:
+- Autonomous including pathing and functions based on recorded session
+- Easy drivetrain zeroing through smartdashboard
+- Responsive drivetrain with PID control and functions such as coast and stationary
+- easily expandible auxilary and drivetrain functions
+- easier to read and edit settings through the external config.json file
+
+How to use:
+- Teleoperated Mode:
+  - Pretty self-explanatory
+  
+- Autonomous Mode:
+  - Runs the pre-selected autonomous mode set in smartdashboard, the default is called "default"
+
+- Test Mode:
+  - Records an autonomous path and exports it --ON THE ROBORIO-- using datetime and is located in paths, would recommend using winscp
 
 Installing Dependencies:
-py -3 -m pip install -U robotpy[ctre, navx]
+py -3.99 -m pip install robotpy robotpy-ctre robotpy-navx
 '''
 import wpilib
 import json
 import os
 import driveTrain
 import driverStation
-import autonomous
+from time import strftime, gmtime
+import navx
 
-
-class MyRobot(wpilib.TimedRobot):
+class MyRobot(wpilib.TimedRobot(period=0.02)):
 
     def robotInit(self):
         """
@@ -30,39 +52,101 @@ class MyRobot(wpilib.TimedRobot):
         """
         with open(f"{os.getcwd()}/config.json", "r") as f1:
             self.config = json.load(f1)
-        self.timer = wpilib.Timer()
         self.driveTrain = driveTrain.driveTrain(self.config)
         self.driverStation = driverStation.driverStation(self.config)
+        self.navx = navx.AHRS.create_spi()
+        self.navx.reset()
+        self.Timer = wpilib.Timer()
 
     def autonomousInit(self):
         """This function is run once each time the robot enters autonomous mode."""
-        auto_plan = wpilib.SmartDashboard.getString("Auto Plan", "getOffLine")
-        # self.auto = autonomousController(auto_plan)
-        # self.timer.reset()
-        # self.timer.start()
-
+        autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
+        with open(f"{os.getcwd()}./paths/{autoPlanName}.json", 'r') as plan:  
+            self.autoPlan = json.dump(plan)
+        self.autonomousIteration = 0
+        self.navx.reset()
+        self.Timer.reset()
+        
+    
     def autonomousPeriodic(self):
         """This function is called periodically during autonomous."""
-
-        # Drive for two seconds
-        if self.timer.get() < 2.0:
-            self.drive.arcadeDrive(-0.5, 0)  # Drive forwards at half speed
+        # deadzones are already filtered so no reason to do any of that here
+        if (self.autonomousIteration < len(self.autoPlan)): # to prevent any index out of range errors
+            switches = self.autoPlan[self.autonomousIteration]
+        if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
+            # auto is over
+            self.Timer.stop()
+            self.driveTrain.stationary()
         else:
-            self.drive.arcadeDrive(0, 0)  # Stop robot
+            self.switchActions(switches)
+        self.autonomousIteration += 1
 
+    def teleopInit(self):
+        self.navx.reset()
+    
     def teleopPeriodic(self):
-        """This function is called periodically during operator control."""
-
+        '''This function is called periodically during operator control.'''
+        switches = self.driverStation.checkSwitches()
+        switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones(switches["driverX"], switches["driverY"], switches["driverZ"])
+        self.switchActions(switches)
+        
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
-        pass
+        self.driveTrain.refreshValues()
     
-    def testInit(self) -> None:
-        pass
+    def testInit(self):
+        self.navx.reset()
+        self.Timer.reset()
+        self.autonomousSwitchList = []
+        self.hasMoved = False
+        wpilib.SmartDashboard.putBoolean("Recording", True)
     
     def testPeriodic(self):
-        ''' My intention with this function is to have the robot automatically run through
-            all of its subsystems and functions similar to autonomous but much more limited.'''
+        ''' Intended to record a path for autonomous '''
+        switches = self.driverStation.checkSwitches()
+        switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones(switches["driverX"], switches["driverY"], switches["driverZ"])
+        if not self.hasMoved:
+            if switches["driverX"] != 0 or switches["driverY"] != 0 or switches["driverZ"] != 0:
+                self.hasMoved = True
+                self.Timer.start()
+        if self.hasMoved:
+            if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
+                # autonomous recording period has ended
+                self.recording = False
+                self.Timer.stop()
+                self.driveTrain.stationary()
+                wpilib.SmartDashboard.putBoolean("Recording", False)
+                dt_gmt = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+                with open(f"{os.getcwd()}./paths/{dt_gmt}.json", 'w') as path:
+                    path.write(json.dump(self.autonomousSwitchList))
+            if self.recording:
+                switches["time"] = self.Timer.get()
+                self.autonomousSwitchList.append(switches)
+                self.switchActions(switches)
+            
+    def switchActions(self, switchDict: dict):
+        ''' Actually acts on and calls commands based on inputs from multiple robot modes '''
+        if switchDict["driverX"] != 0 or switchDict["driverY"] != 0 or switchDict["driverZ"] != 0:
+            self.driveTrain.manualMove(switchDict["driverX"], switchDict["driverY"], switchDict["driverZ"], switchDict["navxAngle"])
+        else:
+            self.driveTrain.stationary()
+        if switchDict["swapFieldOrient"]:
+            self.driveTrain.fieldOrient = not self.driveTrain.fieldOrient # swaps field orient to its opposite value
+            wpilib.SmartDashboard.putBoolean("Field Orient", self.driveTrain.fieldOrient)
+        if switchDict["playEasterEgg"]:
+            self.driveTrain.easterEgg()
+    
+    def evaluateDeadzones(self, x: float, y: float, z: float):
+        if not (x > self.config["driverStation"]["joystickDeadZones"]["xDeadZone"]):
+            x = 0
+        if not (y > self.config["driverStation"]["joystickDeadZones"]["yDeadZone"]):
+            y = 0
+        if not (z > self.config["driverStation"]["joystickDeadZones"]["zDeadZone"]):
+            z = 0
+        return x, y, z
+    
+    def stopAll(self):
+        ''' Exactly as it says, stops all of the functions of the robot '''
         pass
 
 if __name__ == "__main__":

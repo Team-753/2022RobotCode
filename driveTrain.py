@@ -1,17 +1,15 @@
 import wpilib
-
 import math
-import navx
 import ctre
 import json
 import os
 
 class driveTrain:
-    def __init__(self, config):
+    def __init__(self, config: dict):
         self.config = config
         self.trackWidth = self.config["RobotDimensions"]["trackWidth"]
         self.wheelBase = self.config["RobotDimensions"]["wheelBase"]
-        self.fieldOrient = self.config["RobotDefaultSettings"]["fieldOrient"]
+        self.fieldOrient = bool(self.config["RobotDefaultSettings"]["fieldOrient"])
         
         fLConfig = self.config["SwerveModules"]["frontLeft"]
         fRConfig = self.config["SwerveModules"]["frontRight"]
@@ -27,26 +25,23 @@ class driveTrain:
         self.rearLeft.initMotorEncoder()
         self.rearRight.initMotorEncoder()
         
-        self.navx = navx.AHRS.create_spi()
-        self.navx.reset()
         
         self.easterEgg = self.config["RobotDefaultSettings"]["easterEgg"]
         self.orchestra = ctre.Orchestra()
         self.orchestra.addInstrument(self.frontLeft.driveMotor, self.frontLeft.turnMotor, self.frontRight.driveMotor, self.frontRight.turnMotor, self.rearLeft.driveMotor, self.rearLeft.turnMotor, self.rearRight.driveMotor, self.rearRight.turnMotor)
 
-    def rotateCartesianPlane(self, angle, x, y):
+    def rotateCartesianPlane(self, angle: float, x: float, y: float):
         newX = x*math.sin(angle) - y*math.cos(angle)
         newY = x*math.cos(angle) + y*math.sin(angle)
         return(newX, newY)
 
-    def manualMove(self, joystickX, joystickY, joystickRotation):
+    def manualMove(self, joystickX: float, joystickY: float, joystickRotation: float, angle: float):
         '''
         This method takes the joystick inputs from the driverStation class. 
         First checking to see if it is field oriented and compensating for the navx angle if it is.
         NOTE: The final angle may be in unit circle degrees and not in normal oriented degrees this is most likely the problem if the drivetrain has a 90 degree offset
         '''
         if self.fieldOrient:
-            angle = -1*self.navx.getAngle() + 90
             angle %= 360
             if angle < -180:
                 angle += 360
@@ -132,7 +127,7 @@ class driveTrain:
         self.orchestra.play()
     
 class swerveModule:
-    def __init__(self, driveID, turnID, absoluteID, absoluteOffset, moduleName):
+    def __init__(self, driveID: int, turnID: int, absoluteID: int, absoluteOffset: float, moduleName: str):
         if moduleName == "frontLeft":
             # do something
             kPTurn, kITurn, kDTurn = 0, 0, 0
@@ -145,6 +140,7 @@ class swerveModule:
         elif moduleName == "rearRight":
             # do something
             kPTurn, kITurn, kDTurn = 0, 0, 0
+            
         self.CPRConversionFactor = 2048 / 360
         self.turningGearRatio = 12.8 # The steering motor gear ratio
         self.drivingGearRatio = 8.14 # The driving motor gear ratio
@@ -165,8 +161,8 @@ class swerveModule:
         self.absoluteOffset = absoluteOffset
         self.initMotorEncoder()
     
-    def move(self, magnitude, angle):
-        ''' Magnitude with an input range for 0-1, and an angle of 0-360'''
+    def move(self, magnitude: float, angle: float):
+        ''' Magnitude with an input range for 0-1, and an angle of -180->180'''
         encoderTarget = angle * self.CPRConversionFactor * self.turningGearRatio # this will be the source of lots of pain once we get our hands on the motors
         self.turnMotor.set(self.turnMotorControlMode, encoderTarget)
         self.driveMotor.set(self.driveMotorControlMode, magnitude)
@@ -194,7 +190,7 @@ class swerveModule:
         self.initMotorEncoder()
         
     def rewriteZeros(self):
-        filePath = f"{os.getcwd()}./self.config.json"
+        filePath = f"{os.getcwd()}./config.json"
         with open(filePath, 'w') as jsonFile:
             self.config = json.load(jsonFile)
             self.config["SwerveModules"][self.moduleName]["encoderOffset"] = self.absoluteOffset
