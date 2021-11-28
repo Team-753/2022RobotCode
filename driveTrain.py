@@ -4,6 +4,8 @@ import ctre
 import json
 import os
 
+# TODO: Figure out angle conversion stuff bc it still might be in unit circle -180->180, and also find an actual talonFX brake function
+
 class driveTrain:
     def __init__(self, config: dict):
         self.config = config

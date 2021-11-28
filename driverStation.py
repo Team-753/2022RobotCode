@@ -33,7 +33,8 @@ class driverStation:
             "swapFieldOrient": False,
             "playEasterEgg": False,
             "fieldOrient": wpilib.SmartDashboard.getBoolean("fieldOrient", True),
-            "navxAngle": -1*navx.getAngle() + 90
+            "navxAngle": -1*navx.getAngle() + 90,
+            "zeroDriveTrainEncoders": False
         }
         if self.driverInputType != "disconnected":
             if self.driverInputType == "XboxController":
@@ -50,8 +51,9 @@ class driverStation:
                 switchDict["driverY"] = self.driverInput.getY()
                 switchDict["driverZ"] = self.driverInput.getZ()
             # after this point is auxilary code
-            switchDict["swapFieldOrient"] = self.auxilaryInput.getBackButtonReleased()
-            switchDict["playEasterEgg"] = self.auxilaryInput.getStartButtonReleased()
+            switchDict["swapFieldOrient"] = self.auxilaryInput.getStartButtonReleased()
+            switchDict["playEasterEgg"] = self.auxilaryInput.getBButtonReleased()
+            switchDict["zeroDriveTrainEncoders"] = self.auxilaryInput.getBackButtonReleased()
         else:
             self.checkDriverStationInputs()
         return switchDict

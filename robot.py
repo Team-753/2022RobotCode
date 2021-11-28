@@ -9,7 +9,7 @@ GOALS:
     - Configuration file (preferabbly json) for most if not all robot settings
     - Communicate with vision using networktables
     - Get motor framework down (assume we are using talonfx controllers)
-    -- ALL COMPLETED
+    -- Nearly all completed
 TODO:
 - Not really anything as far as a bare bones only falcon drivetrain robot goes this is everything.
 - Still need to integrate vision but that is hard when you do not even know what your robot will be doing
@@ -42,16 +42,30 @@ import os
 import driveTrain
 import driverStation
 from time import strftime, gmtime
+from networktables import NetworkTables
 import navx
+import threading
+
+cond = threading.Condition()
+notified = False
+def connectionListener(connected, info):
+	print(info, '; Connected=%s' % connected)
+	with cond:
+		notified = True 
+		cond.notify()
+
+NetworkTables.initialize(server='roborio-753-frc.local')
+NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+vision = NetworkTables.getTable('aetherVision')
 
 class MyRobot(wpilib.TimedRobot(period=0.02)):
 
     def robotInit(self):
-        """
+        '''
         This function is called upon program startup and
         should be used for any initialization code.
-        """
-        with open(f"{os.getcwd()}/config.json", "r") as f1:
+        '''
+        with open(f"{os.getcwd()}./config.json", "r") as f1:
             self.config = json.load(f1)
         self.driveTrain = driveTrain.driveTrain(self.config)
         self.driverStation = driverStation.driverStation(self.config)
@@ -70,7 +84,7 @@ class MyRobot(wpilib.TimedRobot(period=0.02)):
         
     
     def autonomousPeriodic(self):
-        """This function is called periodically during autonomous."""
+        '''This function is called periodically during autonomous.'''
         # deadzones are already filtered so no reason to do any of that here
         if (self.autonomousIteration < len(self.autoPlan)): # to prevent any index out of range errors
             switches = self.autoPlan[self.autonomousIteration]
@@ -139,6 +153,8 @@ class MyRobot(wpilib.TimedRobot(period=0.02)):
             wpilib.SmartDashboard.putBoolean("Field Orient", self.driveTrain.fieldOrient)
         if switchDict["playEasterEgg"]:
             self.driveTrain.easterEgg()
+        if switchDict["zeroDriveTrainEncoders"]:
+            self.driveTrain.zeroMotorEncoders()
     
     def evaluateDeadzones(self, x: float, y: float, z: float):
         if not (x > self.config["driverStation"]["joystickDeadZones"]["xDeadZone"]):
