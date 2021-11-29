@@ -138,7 +138,7 @@ class MyRobot(wpilib.TimedRobot(period=0.02)):
                     path.write(json.dump(self.autonomousSwitchList))
             if self.recording:
                 switches["time"] = self.Timer.get()
-                self.autonomousSwitchList.append(switches)
+                self.autonomousSwitchList.append(switches) # adds 50x a second a little excessive maybe but needs to capture all inputs
                 self.switchActions(switches)
         self.driveTrain.refreshValues()
             
