@@ -13,13 +13,13 @@ GOALS:
 TODO:
 - Not really anything as far as a bare bones only falcon drivetrain robot goes this is everything.
 - Still need to integrate vision but that is hard when you do not even know what your robot will be doing
-- Still need to integrate auxilary files but yet again without any auxiliary systems as of yet, this is impossible
+- Still need to integrate auxiliary files but yet again without any auxiliary systems as of yet, this is impossible
 
 NOTE - Current Features:
 - Autonomous including pathing and functions based on recorded session
 - Easy drivetrain zeroing through smartdashboard
 - Responsive drivetrain with PID control and functions such as coast and stationary
-- easily expandible auxilary and drivetrain functions
+- easily expandible auxiliary and drivetrain functions
 - easier to read and edit settings through the external config.json file
 
 How to use:
@@ -54,7 +54,7 @@ def connectionListener(connected, info):
 		notified = True 
 		cond.notify()
 
-NetworkTables.initialize(server='roborio-753-frc.local')
+NetworkTables.initialize()
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
 vision = NetworkTables.getTable('aetherVision')
 

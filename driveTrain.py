@@ -170,14 +170,19 @@ class swerveModule:
         self.driveMotor.set(self.driveMotorControlMode, magnitude)
         
     def stationary(self):
-        ''' Brakes and keeps the swerve module still '''
+        ''' Keeps the swerve module still. This implementation is pretty janky tbh '''
         self.driveMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
         self.turnMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
         
     def coast(self):
         ''' Coasts the swerve module '''
-        self.driveMotor.set(ctre.TalonFXControlMode.Disabled, 0)
-        self.turnMotor.set(ctre.TalonFXControlMode.Disabled, 0)
+        self.driveMotor.setsetNeutralMode(ctre.NeutralMode.Coast)
+        self.turnMotor.setNeutralMode(ctre.NeutralMode.Coast)
+    
+    def brake(self):
+        ''' Brakes the swerve module '''
+        self.driveMotor.setsetNeutralMode(ctre.NeutralMode.Brake)
+        self.turnMotor.setNeutralMode(ctre.NeutralMode.Brake)
     
     def initMotorEncoder(self):
         ''' Called to actually set the encoder zero based off of absolute offset and position '''

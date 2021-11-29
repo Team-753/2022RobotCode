@@ -11,7 +11,7 @@ class driverStation:
     
     def checkDriverStationInputs(self):
         driverInputName = self.driverStationUtil.getJoystickName(0) # Driverstation input is on port 0
-        auxilaryInputName = self.driverStationUtil.getJoystickName(1) # Auxilary input is on port 1
+        auxiliaryInputName = self.driverStationUtil.getJoystickName(1) # Auxiliary input is on port 1
         if driverInputName == "Logitech Extreme 3D": # This string is correct given we are using this joystick
             self.driverInputType = "Joystick"
             self.driverInput = wpilib.Joystick(0)
@@ -21,9 +21,9 @@ class driverStation:
         else:
             self.driverStationUtil.reportWarning("Driver input is either unplugged or not set to USB0")
             self.driverInputType = "disconnected"
-        if auxilaryInputName != "Controller (Xbox One For Windows)":
-            self.driverStationUtil.reportWarning("Auxilary input is either unplugged or not set to USB1")
-        self.auxilaryInput = wpilib.XboxController(1)
+        if auxiliaryInputName != "Controller (Xbox One For Windows)":
+            self.driverStationUtil.reportWarning("Auxiliary input is either unplugged or not set to USB1")
+        self.auxiliaryInput = wpilib.XboxController(1)
     
     def checkSwitches(self):
         switchDict = {
@@ -50,10 +50,10 @@ class driverStation:
                 switchDict["driverX"] = self.driverInput.getX()
                 switchDict["driverY"] = self.driverInput.getY()
                 switchDict["driverZ"] = self.driverInput.getZ()
-            # after this point is auxilary code
-            switchDict["swapFieldOrient"] = self.auxilaryInput.getStartButtonReleased()
-            switchDict["playEasterEgg"] = self.auxilaryInput.getBButtonReleased()
-            switchDict["zeroDriveTrainEncoders"] = self.auxilaryInput.getBackButtonReleased()
+            # after this point is auxiliary code
+            switchDict["swapFieldOrient"] = self.auxiliaryInput.getStartButtonReleased()
+            switchDict["playEasterEgg"] = self.auxiliaryInput.getBButtonReleased()
+            switchDict["zeroDriveTrainEncoders"] = self.auxiliaryInput.getBackButtonReleased()
         else:
             self.checkDriverStationInputs()
         return switchDict

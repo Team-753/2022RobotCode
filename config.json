@@ -43,5 +43,13 @@
   },
   "matchSettings": {
     "autonomousTime": 25
+  },
+  "auxiliarySystems": {
+    "neoAuxiliary": {
+      "motorID": 13
+    },
+    "falconAuxiliary": {
+      "motorID": 14
+    }
   }
 }
