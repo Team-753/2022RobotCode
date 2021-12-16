@@ -55,17 +55,17 @@ def connectionListener(connected, info):
 		cond.notify()
 
 NetworkTables.initialize()
-NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+NetworkTables.addConnectionListener(connectionListener, immediateNotify=True) # this is also broken
 vision = NetworkTables.getTable('aetherVision')
 
-class MyRobot(wpilib.TimedRobot(period=0.02)):
+class MyRobot(wpilib.TimedRobot):
 
     def robotInit(self):
         '''
         This function is called upon program startup and
         should be used for any initialization code.
         '''
-        with open(f"{os.getcwd()}./config.json", "r") as f1:
+        with open(f"{os.getcwd()}./config.json", "r") as f1: #incorrect method of loading json same as with in the drivetrain file.
             self.config = json.load(f1)
         self.driveTrain = driveTrain.driveTrain(self.config)
         self.driverStation = driverStation.driverStation(self.config)
