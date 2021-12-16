@@ -14,6 +14,7 @@ TODO:
 - Not really anything as far as a bare bones only falcon drivetrain robot goes this is everything.
 - Still need to integrate vision but that is hard when you do not even know what your robot will be doing
 - Still need to integrate auxiliary files but yet again without any auxiliary systems as of yet, this is impossible
+- Need to implement different autonomous modes that can have a default and be toggleable we probably don't want to default to dumb autonomous
 
 NOTE - Current Features:
 - Autonomous including pathing and functions based on recorded session
