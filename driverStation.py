@@ -3,7 +3,7 @@ from robot import navx
 
 class driverStation:
     def __init__(self, config: dict):
-        self.driverStationUtil = wpilib.DriverStation()
+        self.driverStationUtil = wpilib.DriverStation() # this doesnt work please fix
         self.config = config
         
         self.checkDriverStationInputs()
