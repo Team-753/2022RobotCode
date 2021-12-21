@@ -1,8 +1,10 @@
+from ctre._ctre import AbsoluteSensorRange, SensorInitializationStrategy
 import wpilib
 import math
 import ctre
 import json
 import os
+import wpilib.controller
 
 # TODO: Figure out angle conversion stuff bc it still might be in unit circle -180->180, and also find an actual talonFX brake function
 
@@ -18,10 +20,10 @@ class driveTrain:
         rLConfig = self.config["SwerveModules"]["rearLeft"]
         rRConfig = self.config["SwerveModules"]["rearRight"]
         
-        self.frontLeft = swerveModule(fLConfig["motor_ID_1"], fLConfig["motor_ID_2"], fLConfig["encoderID"], fLConfig["encoderOffset"], "frontLeft")
-        self.frontRight = swerveModule(fRConfig["motor_ID_1"], fRConfig["motor_ID_2"], fRConfig["encoderID"], fRConfig["encoderOffset"], "frontRight")
-        self.rearLeft = swerveModule(rLConfig["motor_ID_1"], rLConfig["motor_ID_2"], rLConfig["encoderID"], rLConfig["encoderOffset"], "rearLeft")
-        self.rearRight = swerveModule(rRConfig["motor_ID_1"], rRConfig["motor_ID_2"], rRConfig["encoderID"], rRConfig["encoderOffset"], "rearRight")
+        self.frontLeft = swerveModule(fLConfig["motor_ID_1"], fLConfig["motor_ID_2"], fLConfig["encoder_ID"], fLConfig["encoderOffset"], "frontLeft")
+        self.frontRight = swerveModule(fRConfig["motor_ID_1"], fRConfig["motor_ID_2"], fRConfig["encoder_ID"], fRConfig["encoderOffset"], "frontRight")
+        self.rearLeft = swerveModule(rLConfig["motor_ID_1"], rLConfig["motor_ID_2"], rLConfig["encoder_ID"], rLConfig["encoderOffset"], "rearLeft")
+        self.rearRight = swerveModule(rRConfig["motor_ID_1"], rRConfig["motor_ID_2"], rRConfig["encoder_ID"], rRConfig["encoderOffset"], "rearRight")
         self.frontLeft.initMotorEncoder()
         self.frontRight.initMotorEncoder()
         self.rearLeft.initMotorEncoder()
@@ -91,12 +93,12 @@ class driveTrain:
         self.rearLeft.move(rLSpeed, rLAngle)
         self.rearRight.move(rRSpeed, rRAngle)
         
-    def zeroMotorEncoders(self):
+    def reInitiateMotorEncoders(self):
         ''' Call this when actually re-zeroing the motor absolutes '''
-        self.frontLeft.zeroMotorEncoder()
-        self.frontRight.zeroMotorEncoder()
-        self.rearLeft.zeroMotorEncoder()
-        self.rearRight.zeroMotorEncoder()
+        self.frontLeft.initMotorEncoder()
+        self.frontRight.initMotorEncoder()
+        self.rearLeft.initMotorEncoder()
+        self.rearRight.initMotorEncoder()
         
     def stationary(self):
         ''' Makes the robot's drivetrain stationary '''
@@ -117,16 +119,23 @@ class driveTrain:
         frontRightValues = self.frontRight.returnValues()
         rearLeftValues = self.rearLeft.returnValues()
         rearRightValues = self.rearRight.returnValues()
-        wpilib.SmartDashboard.putNumberArray("frontLeft", frontLeftValues)
+        '''wpilib.SmartDashboard.putNumberArray("frontLeft", frontLeftValues)
         wpilib.SmartDashboard.putNumberArray("frontRight", frontRightValues)
         wpilib.SmartDashboard.putNumberArray("rearLeft", rearLeftValues)
-        wpilib.SmartDashboard.putNumberArray("rearRight", rearRightValues)
+        wpilib.SmartDashboard.putNumberArray("rearRight", rearRightValues)'''
+        return frontLeftValues, frontRightValues, rearLeftValues, rearRightValues
         
     def easterEgg(self):
         ''' Plays a pre-set tune on the motors;
             This can be interrupted by using pause or set on the TalonFX controllers'''
-        self.orchestra.loadMusic(f"{os.getcwd()}./tunes/{self.easterEgg}.chrp")
-        self.orchestra.play()
+        '''self.orchestra.loadMusic(f"{os.getcwd()}./tunes/{self.easterEgg}.chrp")
+        self.orchestra.play()'''
+        
+    def enableToZeros(self):
+        self.frontLeft.enableToZero()
+        self.frontRight.enableToZero()
+        self.rearLeft.enableToZero()
+        self.rearRight.enableToZero()
     
 class swerveModule:
     def __init__(self, driveID: int, turnID: int, absoluteID: int, absoluteOffset: float, moduleName: str):
@@ -143,34 +152,41 @@ class swerveModule:
             # do something
             kPTurn, kITurn, kDTurn = 0, 0, 0
             
-        self.CPRConversionFactor = 2048 / 360
+        self.CPR = 2048
         self.turningGearRatio = 12.8 # The steering motor gear ratio
         self.drivingGearRatio = 8.14 # The driving motor gear ratio
         self.moduleName = moduleName
+        self.absoluteOffset = absoluteOffset
         
         self.driveMotor = ctre.TalonFX(driveID)
-        self.driveMotor.configFactoryDefault()
-        self.driveMotorControlMode = ctre.TalonFXControlMode.PercentOutput
-
         self.turnMotor = ctre.TalonFX(turnID)
-        self.turnMotor.configFactoryDefault()
-        self.turnMotor.configIntegratedSensorAbsoluteRange((-180, 180))
-        self.turnMotor.configurePID((kPTurn, kITurn, kDTurn))
-        self.turnMotorControlMode = ctre.TalonFXControlMode.Position
         
         self.absoluteEncoder = ctre.CANCoder(absoluteID)
-        self.absoluteEncoder.configAbsoluteSensorRange((-180, 180))
-        self.absoluteOffset = absoluteOffset
+        self.absoluteEncoder.configSensorInitializationStrategy(SensorInitializationStrategy.BootToAbsolutePosition)
+        self.absoluteEncoder.configAbsoluteSensorRange(AbsoluteSensorRange.Signed_PlusMinus180)
+        self.absoluteEncoder.configMagnetOffset(self.absoluteOffset)
+        
+        self.turnController = wpilib.controller.PIDController(0.005, 0.0025, 0)
+        self.turnController.enableContinuousInput(-180, 180)
+        self.previousTarget = 0
+        self.turnController.setTolerance(0.25) # change this number to change accuracy and jitter of motor
+        
         self.initMotorEncoder()
     
     def move(self, magnitude: float, angle: float):
         ''' Magnitude with an input range for 0-1, and an angle of -180->180'''
-        encoderTarget = angle * self.CPRConversionFactor * self.turningGearRatio # this will be the source of lots of pain once we get our hands on the motors
-        self.turnMotor.set(self.turnMotorControlMode, encoderTarget)
-        self.driveMotor.set(self.driveMotorControlMode, magnitude)
+        self.previousTarget = angle
+        motorPosition = self.motorPosition()
+        if motorPosition > 180:
+            motorPosition -= 360
+        self.turnController.setSetpoint(angle)
+        turnSpeed = self.turnController.calculate(motorPosition)
+        self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
+        self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude)
         
     def stationary(self):
         ''' Keeps the swerve module still. This implementation is pretty janky tbh '''
+        # may need to implement a thing for the turncontroller to still run in here if it had a previous target it never met
         self.driveMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
         self.turnMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
         
@@ -181,27 +197,36 @@ class swerveModule:
     
     def brake(self):
         ''' Brakes the swerve module '''
-        self.driveMotor.setsetNeutralMode(ctre.NeutralMode.Brake)
+        self.driveMotor.setNeutralMode(ctre.NeutralMode.Brake)
         self.turnMotor.setNeutralMode(ctre.NeutralMode.Brake)
     
     def initMotorEncoder(self):
         ''' Called to actually set the encoder zero based off of absolute offset and position '''
-        position = self.absoluteEncoder.getAbsolutePosition() - self.absoluteOffset
-        self.turnMotor.setSelectedSensorPosition(position, 0)
-        self.turnMotor.set(self.turnMotorControlMode, 0)
+        self.turnMotor.setSelectedSensorPosition(self.absoluteEncoder.getAbsolutePosition() * self.CPR * self.turningGearRatio / 360)
         
-    def zeroMotorEncoder(self):
-        ''' Call this when physically setting the motor encoder zeros '''
-        self.absoluteOffset = self.absoluteEncoder.getAbsolutePosition() # write that to the json
-        self.rewriteZeros()
-        self.initMotorEncoder()
+    def motorPosition(self):
+        motorPosition = ((self.turnMotor.getSelectedSensorPosition(0) % (self.CPR*self.turningGearRatio)) * 360/(self.CPR*self.turningGearRatio))
+        if motorPosition > 180:
+            motorPosition -= 360
+        return motorPosition
+    
+    def enableToZero(self):
+        motorPosition = self.motorPosition()
+        self.turnController.setSetpoint(0) # may have to change this to 180
+        turnSpeed = self.turnController.calculate(motorPosition)
+        self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
         
     def rewriteZeros(self):
-        filePath = f"{os.getcwd()}./config.json"
-        with open(filePath, 'w') as jsonFile:
-            self.config = json.load(jsonFile)
-            self.config["SwerveModules"][self.moduleName]["encoderOffset"] = self.absoluteOffset
-            jsonFile.write(json.dump(self.config, indent=2))
+        rawAbsolute = self.absoluteEncoder.getAbsolutePosition() - self.absoluteOffset
+        with open (f"{os.path.dirname(os.path.abspath(__file__))}/config.json", "r") as f1:
+            config = json.load(f1)
+        config["SwerveModules"][self.moduleName]["encoderOffset"] = -rawAbsolute
+        with open (f"{os.path.dirname(os.path.abspath(__file__))}/config.json", "w") as f2:
+            f2.write(json.dump(config, indent=2))
+        self.absoluteOffset = -rawAbsolute
+        self.initMotorEncoder()
     
     def returnValues(self):
-        return (self.turnMotor.getSelectedSensorPosition(0), self.absoluteEncoder.getAbsolutePosition(), self.absoluteOffset)    
+        motorPosition = self.motorPosition()
+        rawAbsolute = self.absoluteEncoder.getAbsolutePosition() - self.absoluteOffset
+        return (motorPosition, self.absoluteEncoder.getAbsolutePosition(), self.absoluteOffset, rawAbsolute) 

@@ -36,9 +36,9 @@
   },
   "driverStation": {
     "joystickDeadZones": {
-      "xDeadZone": 0.2,
-      "yDeadZone": 0.2,
-      "zDeadZone": 0.2
+      "xDeadZone": 0.1,
+      "yDeadZone": 0.1,
+      "zDeadZone": 0.1
     }
   },
   "matchSettings": {

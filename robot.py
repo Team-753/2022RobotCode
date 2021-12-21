@@ -47,7 +47,7 @@ from networktables import NetworkTables
 import navx
 import threading
 
-cond = threading.Condition()
+'''cond = threading.Condition()
 notified = False
 def connectionListener(connected, info):
 	print(info, '; Connected=%s' % connected)
@@ -57,7 +57,7 @@ def connectionListener(connected, info):
 
 NetworkTables.initialize()
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True) # this is also broken
-vision = NetworkTables.getTable('aetherVision')
+vision = NetworkTables.getTable('aetherVision')'''
 
 class MyRobot(wpilib.TimedRobot):
 
@@ -66,47 +66,60 @@ class MyRobot(wpilib.TimedRobot):
         This function is called upon program startup and
         should be used for any initialization code.
         '''
-        with open(f"{os.getcwd()}./config.json", "r") as f1: #incorrect method of loading json same as with in the drivetrain file.
+        with open (f"{os.path.dirname(os.path.abspath(__file__))}/config.json", "r") as f1:
             self.config = json.load(f1)
         self.driveTrain = driveTrain.driveTrain(self.config)
         self.driverStation = driverStation.driverStation(self.config)
         self.navx = navx.AHRS.create_spi()
         self.navx.reset()
         self.Timer = wpilib.Timer()
+        self.autonomousMode = "dumb"
 
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
-        autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
-        with open(f"{os.getcwd()}./paths/{autoPlanName}.json", 'r') as plan:  
-            self.autoPlan = json.dump(plan)
-        self.autonomousIteration = 0
-        self.navx.reset()
-        self.Timer.reset()
+        if self.autonomousMode == "dumb":
+            autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
+            with open(f"{os.path.dirname(os.path.abspath(__file__))}/paths/{autoPlanName}.json", 'r') as plan:  
+                self.autoPlan = json.dump(plan)
+            self.autonomousIteration = 0
+            self.navx.reset()
+            self.Timer.reset()
         
     
     def autonomousPeriodic(self):
         '''This function is called periodically during autonomous.'''
         # deadzones are already filtered so no reason to do any of that here
-        if (self.autonomousIteration < len(self.autoPlan)): # to prevent any index out of range errors
-            switches = self.autoPlan[self.autonomousIteration]
-        if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
-            # auto is over
-            self.Timer.stop()
-            self.stopAll()
-        else:
-            self.switchActions(switches)
-        self.autonomousIteration += 1
-        self.driveTrain.refreshValues()
+        if self.autonomousMode == "dumb":
+            if (self.autonomousIteration < len(self.autoPlan)): # to prevent any index out of range errors
+                switches = self.autoPlan[self.autonomousIteration]
+            if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
+                # auto is over
+                self.Timer.stop()
+                self.stopAll()
+            else:
+                self.switchActions(switches)
+            self.autonomousIteration += 1
+            self.driveTrain.refreshValues()
 
     def teleopInit(self):
         self.navx.reset()
         self.driveTrain.refreshValues()
+        self.enabledToZero = False
         
     def teleopPeriodic(self):
         '''This function is called periodically during operator control.'''
-        switches = self.driverStation.checkSwitches()
-        switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones(switches["driverX"], switches["driverY"], switches["driverZ"])
-        self.switchActions(switches)
+        if not self.enabledToZero:
+            self.driveTrain.enableToZeros()
+            driveData = self.driveTrain.refreshValues()
+            for module in driveData:
+                motorPosition = module[0]
+                if motorPosition + 0.25 > 0 and motorPosition - 0.25 < 0:
+                    self.enabledToZero = True
+        
+        else:
+            switches = self.driverStation.checkSwitches()
+            switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones(switches["driverX"], switches["driverY"], switches["driverZ"])
+            self.switchActions(switches)
         
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
@@ -135,7 +148,7 @@ class MyRobot(wpilib.TimedRobot):
                 self.stopAll()
                 wpilib.SmartDashboard.putBoolean("Recording", False)
                 dt_gmt = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-                with open(f"{os.getcwd()}./paths/{dt_gmt}.json", 'w') as path:
+                with open(f"{os.path.dirname(os.path.abspath(__file__))}/paths/{dt_gmt}.json", 'w') as path:
                     path.write(json.dump(self.autonomousSwitchList))
             if self.recording:
                 switches["time"] = self.Timer.get()
@@ -154,8 +167,8 @@ class MyRobot(wpilib.TimedRobot):
             wpilib.SmartDashboard.putBoolean("Field Orient", self.driveTrain.fieldOrient)
         if switchDict["playEasterEgg"]:
             self.driveTrain.easterEgg()
-        if switchDict["zeroDriveTrainEncoders"]:
-            self.driveTrain.zeroMotorEncoders()
+        if switchDict["resetDriveTrainEncoders"]:
+            self.driveTrain.reInitiateMotorEncoders()
     
     def evaluateDeadzones(self, x: float, y: float, z: float):
         if not (x > self.config["driverStation"]["joystickDeadZones"]["xDeadZone"]):
