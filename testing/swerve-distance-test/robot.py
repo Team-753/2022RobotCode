@@ -45,7 +45,7 @@ class MyRobot(wpilib.TimedRobot):
     def driveMotorPositionInches(self):
         rawPosition = self.driveMotor.getSelectedSensorPosition(0)
         positionDegrees = (rawPosition % (2048 * 8.14)) * 360 / (2048 * 8.14)
-        positionInches = positionDegrees * self.wheelCircumference
+        positionInches = positionDegrees * (self.wheelCircumference / 360) # maybe divide circumference by 360?
         wpilib.SmartDashboard.putNumber("Position Degrees:", positionDegrees)
         wpilib.SmartDashboard.putNumber("Position Inches:", positionInches)
         
