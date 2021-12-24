@@ -92,7 +92,7 @@ class driveTrain:
         self.frontRight.move(fRSpeed, fRAngle)
         self.rearLeft.move(rLSpeed, rLAngle)
         self.rearRight.move(rRSpeed, rRAngle)
-        
+
     def reInitiateMotorEncoders(self):
         ''' Call this when actually re-zeroing the motor absolutes '''
         self.frontLeft.initMotorEncoder()

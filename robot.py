@@ -46,6 +46,7 @@ from time import strftime, gmtime
 from networktables import NetworkTables
 import navx
 import threading
+import autonomous
 
 '''cond = threading.Condition()
 notified = False
@@ -73,17 +74,22 @@ class MyRobot(wpilib.TimedRobot):
         self.navx = navx.AHRS.create_spi()
         self.navx.reset()
         self.Timer = wpilib.Timer()
-        self.autonomousMode = "dumb"
+        self.autonomousMode = "smart" # alternatively "dumb"
 
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
         if self.autonomousMode == "dumb":
             autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
             with open(f"{os.path.dirname(os.path.abspath(__file__))}/paths/{autoPlanName}.json", 'r') as plan:  
-                self.autoPlan = json.dump(plan)
+                self.autoPlan = json.load(plan)
             self.autonomousIteration = 0
             self.navx.reset()
             self.Timer.reset()
+        elif self.autonomousMode == "smart":
+            autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
+            self.autonomousController = autonomous.autonomous(autoPlanName)
+            self.navx.reset()
+            self.navx.resetDisplacement()
         
     
     def autonomousPeriodic(self):
@@ -100,6 +106,9 @@ class MyRobot(wpilib.TimedRobot):
                 self.switchActions(switches)
             self.autonomousIteration += 1
             self.driveTrain.refreshValues()
+        elif self.autonomousMode == "smart":
+            x, y, z, auxiliary = self.autonomousController.periodic(self.navx.getDisplacementX(), self.navx.getDisplacementY()) # need to eventually add support for auxiliary systems
+            self.driveTrain.manualMove(x, y, z)
 
     def teleopInit(self):
         self.navx.reset()

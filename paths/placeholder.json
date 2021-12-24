@@ -1,3 +1,22 @@
-{
-  "Placeholder": 0
-}
+[
+  {
+    "coordinates": {
+      "x": 0,
+      "y": 0
+    },
+    "rotation": 0,
+    "speedFactor": 1,
+    "stop": false,
+    "wait": false
+  },
+  {
+    "coordinates": {
+      "x": 1,
+      "y": 1
+    },
+    "rotation": 0,
+    "speedFactor": 1,
+    "stop": false,
+    "wait": false
+  }
+]
