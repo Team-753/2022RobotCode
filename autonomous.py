@@ -105,4 +105,71 @@ class autonomous:
             z = self.currentPoint["rotation"]
             auxiliary = () # add onto this later
             return x, y, z, auxiliary
-        
+
+
+class cubicBSpline():
+    ''' Generates the actual coordinate map based off of the
+    output from the autonomous path creator '''
+    
+    '''
+    structure of what will be passed into this thing as a list:
+    <controlPointList>[
+        <ControlPoint>[
+            <coordinates>(
+                <int> x,
+                <int> y
+            ),
+            <subPoints>[
+                1x,
+                1y,
+                2x,
+                2y
+            ],
+            <double> robotAngleTarget,
+            <boolean> stop,
+            <double> speedFactor,
+            <boolean> wait,
+            <actionList>[
+                <string> command
+            ]
+        ]
+    ]
+    '''
+    def __init__(self, controlPoints: list, n: int):
+        '''
+        :param controlPoints: The list of control points with their various attributes
+        :param n: The density of points along the total path length, the higher the number, the greater the accuracy
+        !Returns: The final list that you feed to the auto-algorithm
+        '''
+        self.controlPoints = controlPoints
+        self.interpolatedList = []
+        for i in range (0, n):
+            point = []
+            point.append(self.getPathPosition(i*(len(self.controlPoints) - 1) / n)) # adds the (x, y) tuple
+            point.append([controlPoints[2], controlPoints[3], controlPoints[4], controlPoints[5], controlPoints[6]])
+            self.interpolatedList.append(point)
+        return self.interpolatedList 
+            
+    def getPathPosition(self, t):
+            if t > (len(self.controlPoints) - 1):
+                return None
+            startingPoint = int(t) #Takes the floor of t
+
+            t = t % 1
+
+            P0 = self.controlPoints[startingPoint]
+            P3 = self.controlPoints[startingPoint + 1]
+            P1 = [P0[1][2], P0[1][3]]
+            P2 = [P3[1][0], P3[1][1]]
+            P0 = [self.controlPoints[startingPoint][0][0], self.controlPoints[startingPoint][0][1]]
+            P3 = [self.controlPoints[startingPoint + 1][0][0], self.controlPoints[startingPoint + 1][0][1]]
+
+            a = (1-t)**3
+            b = 3*((1-t)**2)*(t)
+            c = 3*(1-t)*((t)**2)
+            d = (t)**3
+
+            x = a*P0[0] + b*P1[0] + c*P2[0] + d*P3[0]
+            y = a*P0[1] + b*P1[1] + c*P2[1] + d*P3[1]
+
+            return(x, y)

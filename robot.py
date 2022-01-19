@@ -67,7 +67,9 @@ class MyRobot(wpilib.TimedRobot):
         This function is called upon program startup and
         should be used for any initialization code.
         '''
-        with open (f"{os.path.dirname(os.path.abspath(__file__))}/config.json", "r") as f1:
+        folderPath = os.path.dirname(os.path.abspath(__file__))
+        filePath = os.path.join(folderPath, 'config.json')
+        with open (filePath, "r") as f1:
             self.config = json.load(f1)
         self.driveTrain = driveTrain.driveTrain(self.config)
         self.driverStation = driverStation.driverStation(self.config)
@@ -107,7 +109,7 @@ class MyRobot(wpilib.TimedRobot):
             self.autonomousIteration += 1
             self.driveTrain.refreshValues()
         elif self.autonomousMode == "smart":
-            x, y, z, auxiliary = self.autonomousController.periodic(self.navx.getDisplacementX(), self.navx.getDisplacementY()) # need to eventually add support for auxiliary systems
+            x, y, z, auxiliary = self.autonomousController.periodic(self.navx.getDisplacementX() * 39.37008, self.navx.getDisplacementY() * 39.37008) # need to eventually add support for auxiliary systems
             self.driveTrain.manualMove(x, y, z)
 
     def teleopInit(self):
