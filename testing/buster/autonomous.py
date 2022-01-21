@@ -81,7 +81,7 @@ class autonomous:
         return remaining
                 
     
-    def periodic(self, xDisplacement, yDisplacement):
+    def periodic(self, xDisplacement, yDisplacement): #TODO NOTE: initially set navx offset to robot starting position 
         if len(self.path) == self.currentPointIndex:
             return 0, 0, 0
         self.currentPoint = self.path[self.currentPointIndex]
