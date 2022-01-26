@@ -9,32 +9,32 @@ config = {
   "SwerveModules": {
     "frontLeft": {
       "motor_ID_1": 1,
-      "motor_ID_2": 2,
-      "encoder_ID": 3,
-      "encoderOffset": 0.0
+      "motor_ID_2": 3,
+      "encoder_ID": 2,
+      "encoderOffset": -59.150391
     },
     "frontRight": {
       "motor_ID_1": 4,
-      "motor_ID_2": 5,
-      "encoder_ID": 6,
-      "encoderOffset": 0.0
+      "motor_ID_2": 6,
+      "encoder_ID": 5,
+      "encoderOffset": 55.986328
     },
     "rearLeft": {
       "motor_ID_1": 7,
-      "motor_ID_2": 8,
-      "encoder_ID": 9,
-      "encoderOffset": 0.0
+      "motor_ID_2": 9,
+      "encoder_ID": 8,
+      "encoderOffset": 62.402344
     },
     "rearRight": {
       "motor_ID_1": 10,
-      "motor_ID_2": 11,
-      "encoder_ID": 12,
-      "encoderOffset": 0.0
+      "motor_ID_2": 12,
+      "encoder_ID": 11,
+      "encoderOffset": 106.435547
     }
   },
   "RobotDimensions": { # fix these
-    "trackWidth": 36,
-    "wheelBase": 48,
+    "trackWidth": 26.5,
+    "wheelBase": 26.5,
     "wheelDiameter": 4
   },
   "RobotDefaultSettings": {
@@ -92,7 +92,15 @@ class MyRobot(wpilib.TimedRobot):
     def disabledInit(self):
         pass
     def disabledPeriodic(self):
-        pass
+        vals = self.driveTrain.refreshValues()
+        wpilib.SmartDashboard.putNumber("FLA", vals[0][1])
+        wpilib.SmartDashboard.putNumber("FRA", vals[1][1])
+        wpilib.SmartDashboard.putNumber("RLA", vals[2][1])
+        wpilib.SmartDashboard.putNumber("RRA", vals[3][1])
+        wpilib.SmartDashboard.putNumber("FL", vals[0][0])
+        wpilib.SmartDashboard.putNumber("FR", vals[1][0])
+        wpilib.SmartDashboard.putNumber("RL", vals[2][0])
+        wpilib.SmartDashboard.putNumber("RR", vals[3][0])
     def checkSwitches(self):
         switchDict = {
             "driverX": 0.0,
@@ -105,6 +113,14 @@ class MyRobot(wpilib.TimedRobot):
         switchDict["driverY"] = self.driverInput.getY()
         switchDict["driverZ"] = self.driverInput.getZ()
         return switchDict
+    def evaluateDeadzones(self, x: float, y: float, z: float):
+      if not (x > config["driverStation"]["joystickDeadZones"]["xDeadZone"] or x < -config["driverStation"]["joystickDeadZones"]["xDeadZone"]):
+          x = 0
+      if not (y > config["driverStation"]["joystickDeadZones"]["yDeadZone"] or y < -config["driverStation"]["joystickDeadZones"]["yDeadZone"]):
+          y = 0
+      if not (z > config["driverStation"]["joystickDeadZones"]["zDeadZone"] or z < -config["driverStation"]["joystickDeadZones"]["zDeadZone"]):
+          z = 0
+      return x, y, z
     
 
 

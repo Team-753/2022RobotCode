@@ -30,9 +30,9 @@ class driveTrain:
         self.rearRight.initMotorEncoder()
         
         
-        self.easterEgg = self.config["RobotDefaultSettings"]["easterEgg"]
-        self.orchestra = ctre.Orchestra()
-        self.orchestra.addInstrument(self.frontLeft.driveMotor, self.frontLeft.turnMotor, self.frontRight.driveMotor, self.frontRight.turnMotor, self.rearLeft.driveMotor, self.rearLeft.turnMotor, self.rearRight.driveMotor, self.rearRight.turnMotor)
+        #self.easterEgg = self.config["RobotDefaultSettings"]["easterEgg"]
+        #self.orchestra = ctre.Orchestra()
+        #self.orchestra.addInstrument(self.frontLeft.driveMotor, self.frontLeft.turnMotor, self.frontRight.driveMotor, self.frontRight.turnMotor, self.rearLeft.driveMotor, self.rearLeft.turnMotor, self.rearRight.driveMotor, self.rearRight.turnMotor)
 
     def rotateCartesianPlane(self, angle: float, x: float, y: float):
         newX = x*math.sin(angle) - y*math.cos(angle)
@@ -182,7 +182,7 @@ class swerveModule:
         self.turnController.setSetpoint(angle)
         turnSpeed = self.turnController.calculate(motorPosition)
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
-        self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude)
+        self.driveMotor.set(ctre.ControlMode.PercentOutput, -magnitude)
         
     def stationary(self):
         ''' Keeps the swerve module still. This implementation is pretty janky tbh '''
@@ -202,10 +202,15 @@ class swerveModule:
     
     def initMotorEncoder(self):
         ''' Called to actually set the encoder zero based off of absolute offset and position '''
-        self.turnMotor.setSelectedSensorPosition(self.absoluteEncoder.getAbsolutePosition() * self.CPR * self.turningGearRatio / 360)
+        self.turnMotor.configIntegratedSensorAbsoluteRange(AbsoluteSensorRange.Unsigned_0_to_360)
+        self.turnMotor.setSelectedSensorPosition(int(self.absoluteEncoder.getAbsolutePosition() * self.CPR * self.turningGearRatio / 360))
         
     def motorPosition(self):
-        motorPosition = ((self.turnMotor.getSelectedSensorPosition(0) % (self.CPR*self.turningGearRatio)) * 360/(self.CPR*self.turningGearRatio))
+        '''motorPosition = ((self.turnMotor.getSelectedSensorPosition(0) % (self.CPR*self.turningGearRatio)) * 360/(self.CPR*self.turningGearRatio))
+        if motorPosition > 180:
+            motorPosition -= 360'''
+        motorPosition = self.turnMotor.getSelectedSensorPosition(0)
+        motorPosition = ((motorPosition % (2048*12.8)) * 360/(2048*12.8))
         if motorPosition > 180:
             motorPosition -= 360
         return motorPosition
