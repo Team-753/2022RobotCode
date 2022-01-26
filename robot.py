@@ -182,11 +182,11 @@ class MyRobot(wpilib.TimedRobot):
             self.driveTrain.reInitiateMotorEncoders()
     
     def evaluateDeadzones(self, x: float, y: float, z: float):
-        if not (x > self.config["driverStation"]["joystickDeadZones"]["xDeadZone"]):
+        if not (x > self.config["driverStation"]["joystickDeadZones"]["xDeadZone"] or x < -self.config["driverStation"]["joystickDeadZones"]["xDeadZone"]):
             x = 0
-        if not (y > self.config["driverStation"]["joystickDeadZones"]["yDeadZone"]):
+        if not (y > self.config["driverStation"]["joystickDeadZones"]["yDeadZone"] or y < -self.config["driverStation"]["joystickDeadZones"]["yDeadZone"]):
             y = 0
-        if not (z > self.config["driverStation"]["joystickDeadZones"]["zDeadZone"]):
+        if not (z > self.config["driverStation"]["joystickDeadZones"]["zDeadZone"] or z < -self.config["driverStation"]["joystickDeadZones"]["zDeadZone"]):
             z = 0
         return x, y, z
     
