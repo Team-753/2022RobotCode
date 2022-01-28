@@ -3,6 +3,7 @@ import wpilib
 import navx
 import autonomous
 import driveTrain
+import math
 
 
 config = {
@@ -11,25 +12,25 @@ config = {
       "motor_ID_1": 1,
       "motor_ID_2": 3,
       "encoder_ID": 2,
-      "encoderOffset": -59.150391
+      "encoderOffset": 16.787109
     },
     "frontRight": {
       "motor_ID_1": 4,
       "motor_ID_2": 6,
       "encoder_ID": 5,
-      "encoderOffset": 55.986328
+      "encoderOffset": -109.511719
     },
     "rearLeft": {
       "motor_ID_1": 7,
       "motor_ID_2": 9,
       "encoder_ID": 8,
-      "encoderOffset": 62.402344
+      "encoderOffset": -103.271484
     },
     "rearRight": {
       "motor_ID_1": 10,
       "motor_ID_2": 12,
       "encoder_ID": 11,
-      "encoderOffset": 106.435547
+      "encoderOffset": -124.101563
     }
   },
   "RobotDimensions": { # fix these
@@ -45,7 +46,7 @@ config = {
     "joystickDeadZones": {
       "xDeadZone": 0.1,
       "yDeadZone": 0.1,
-      "zDeadZone": 0.1
+      "zDeadZone": 0.2
     }
   },
   }
@@ -53,7 +54,7 @@ config = {
 class MyRobot(wpilib.TimedRobot):
     def robotInit(self):
         self.driveTrain = driveTrain.driveTrain(config)
-        self.navx = navx.AHRS.create_spi()
+        self.navx = navx.AHRS.create_spi(update_rate_hz=100)
     def autonomousInit(self):
         autoPlanName = "default"
         self.autonomousController = autonomous.autonomous(autoPlanName)
@@ -68,22 +69,22 @@ class MyRobot(wpilib.TimedRobot):
     def teleopInit(self):
         self.driverInput = wpilib.Joystick(0)
         self.enabledToZero = False
+        self.navx.reset()
     def teleopPeriodic(self):
-        if not self.enabledToZero:
-            tolerance = 0.25
-            self.driveTrain.enableToZeros()
-            driveData = self.driveTrain.refreshValues()
-            for module in driveData:
-                motorPosition = module[0]
-                if motorPosition + tolerance > 0 and motorPosition - tolerance < 0:
-                    self.enabledToZero = True
+        switches = self.checkSwitches()
+        switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones(switches["driverX"], switches["driverY"], switches["driverZ"])
+        if switches["driverX"] != 0 or switches["driverY"] != 0 or switches["driverZ"] != 0:
+            self.driveTrain.manualMove(switches["driverX"], switches["driverY"], switches["driverZ"], switches["navxAngle"])
         else:
-            switches = self.checkSwitches()
-            switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones(switches["driverX"], switches["driverY"], switches["driverZ"])
-            if switches["driverX"] != 0 or switches["driverY"] != 0 or switches["driverZ"] != 0:
-                self.driveTrain.manualMove(switches["driverX"], switches["driverY"], switches["driverZ"], switches["navxAngle"])
-            else:
-                self.driveTrain.stationary()
+            self.driveTrain.stationary()
+        vals = self.driveTrain.refreshValues()
+        wpilib.SmartDashboard.putNumber("FLA", vals[0][1])
+        wpilib.SmartDashboard.putNumber("FRA", vals[1][1])
+        wpilib.SmartDashboard.putNumber("RLA", vals[2][1])
+        wpilib.SmartDashboard.putNumber("RRA", vals[3][1])
+        wpilib.SmartDashboard.putNumber("navx Angle:", self.navx.getAngle())
+        wpilib.SmartDashboard.putNumber("navx X Displacement:", self.navx.getDisplacementX())
+        wpilib.SmartDashboard.putNumber("navx Z Displacement:", self.navx.getDisplacementZ())
             
     def testInit(self):
         pass
@@ -120,9 +121,8 @@ class MyRobot(wpilib.TimedRobot):
           y = 0
       if not (z > config["driverStation"]["joystickDeadZones"]["zDeadZone"] or z < -config["driverStation"]["joystickDeadZones"]["zDeadZone"]):
           z = 0
+      
       return x, y, z
-    
-
 
 if __name__ == "__main__":
     wpilib.run(MyRobot)

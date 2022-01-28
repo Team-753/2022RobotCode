@@ -45,6 +45,11 @@ class driveTrain:
         First checking to see if it is field oriented and compensating for the navx angle if it is.
         NOTE: The final angle may be in unit circle degrees and not in normal oriented degrees this is most likely the problem if the drivetrain has a 90 degree offset
         '''
+        
+        #The joysticks y axis is inverted for some reason
+        joystickY = -joystickY
+        
+        
         if self.fieldOrient:
             angle %= 360
             if angle < -180:
@@ -55,6 +60,9 @@ class driveTrain:
             translationVector = self.rotateCartesianPlane(angleRadians, joystickX, joystickY)
         else:
             translationVector = (joystickX, joystickY)
+        wpilib.SmartDashboard.putNumber("Interpreted X:", joystickX)
+        wpilib.SmartDashboard.putNumber("Interpreted Y:", joystickY)
+        wpilib.SmartDashboard.putNumber("Interpreted Z:", joystickRotation)
 
         fLRotationVectorAngle = (math.atan2(self.wheelBase, -1*self.trackWidth) - (math.pi/2))
         fRRotationVectorAngle = (math.atan2(self.wheelBase, self.trackWidth) - (math.pi/2))
@@ -70,7 +78,7 @@ class driveTrain:
         fRTranslationVector = (fRRotationVector[0] + translationVector[0], fRRotationVector[1] + translationVector[1])
         rLTranslationVector = (rLRotationVector[0] + translationVector[0], rLRotationVector[1] + translationVector[1])
         rRTranslationVector = (rRRotationVector[0] + translationVector[0], rRRotationVector[1] + translationVector[1])
-
+        
         fLAngle = math.atan2(fLTranslationVector[1], fLTranslationVector[0])*180/math.pi
         fRAngle = math.atan2(fRTranslationVector[1], fRTranslationVector[0])*180/math.pi
         rLAngle = math.atan2(rLTranslationVector[1], rLTranslationVector[0])*180/math.pi
@@ -141,22 +149,22 @@ class swerveModule:
     def __init__(self, driveID: int, turnID: int, absoluteID: int, absoluteOffset: float, moduleName: str):
         if moduleName == "frontLeft":
             # do something
-            kPTurn, kITurn, kDTurn = 0, 0, 0
+            kPTurn, kITurn, kDTurn = 0.005, 0.003, 0
         elif moduleName == "frontRight":
             # do something
-            kPTurn, kITurn, kDTurn = 0, 0, 0
+            kPTurn, kITurn, kDTurn = 0.005, 0.003, 0
         elif moduleName == "rearLeft":
             # do something
-            kPTurn, kITurn, kDTurn = 0, 0, 0
+            kPTurn, kITurn, kDTurn = 0.005, 0.003, 0
         elif moduleName == "rearRight":
             # do something
-            kPTurn, kITurn, kDTurn = 0, 0, 0
+            kPTurn, kITurn, kDTurn = 0.005, 0.003, 0
             
         self.CPR = 2048
         self.turningGearRatio = 12.8 # The steering motor gear ratio
         self.drivingGearRatio = 8.14 # The driving motor gear ratio
         self.moduleName = moduleName
-        self.absoluteOffset = absoluteOffset
+        self.absoluteOffset = -absoluteOffset
         
         self.driveMotor = ctre.TalonFX(driveID)
         self.turnMotor = ctre.TalonFX(turnID)
@@ -166,23 +174,32 @@ class swerveModule:
         self.absoluteEncoder.configAbsoluteSensorRange(AbsoluteSensorRange.Signed_PlusMinus180)
         self.absoluteEncoder.configMagnetOffset(self.absoluteOffset)
         
-        self.turnController = wpilib.controller.PIDController(0.005, 0.0025, 0)
+        self.turnController = wpilib.controller.PIDController(kPTurn, kITurn, kDTurn)
         self.turnController.enableContinuousInput(-180, 180)
         self.previousTarget = 0
-        self.turnController.setTolerance(0.25) # change this number to change accuracy and jitter of motor
+        self.turnController.setTolerance(0.1) # change this number to change accuracy and jitter of motor
         
         self.initMotorEncoder()
     
+    def rotateUnitCircle(self, angle):
+        if angle < -90:
+            angle += 270
+        else:
+            angle -= 90
+        return(angle)
+    
     def move(self, magnitude: float, angle: float):
         ''' Magnitude with an input range for 0-1, and an angle of -180->180'''
+        angle = self.rotateUnitCircle(angle)
         self.previousTarget = angle
+        wpilib.SmartDashboard.putNumber(f"{self.moduleName}:", angle)
         motorPosition = self.motorPosition()
         if motorPosition > 180:
             motorPosition -= 360
         self.turnController.setSetpoint(angle)
         turnSpeed = self.turnController.calculate(motorPosition)
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
-        self.driveMotor.set(ctre.ControlMode.PercentOutput, -magnitude)
+        self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude * 1)
         
     def stationary(self):
         ''' Keeps the swerve module still. This implementation is pretty janky tbh '''
