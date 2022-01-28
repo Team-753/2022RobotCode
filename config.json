@@ -25,6 +25,7 @@
       "encoderOffset": 0.0
     }
   },
+  "Climber": {},
   "RobotDimensions": {
     "trackWidth": 36,
     "wheelBase": 48,

@@ -77,6 +77,8 @@ class MyRobot(wpilib.TimedRobot):
         self.navx.reset()
         self.Timer = wpilib.Timer()
         self.autonomousMode = "smart" # alternatively "dumb"
+        
+        self.compressor = wpilib.Compressor(0)
 
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
