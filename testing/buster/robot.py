@@ -1,8 +1,8 @@
 # All imports at the top of the file, including the other files we made in the repository.
 import wpilib
 import navx
-import autonomous
-import driveTrain
+from parent
+from ./music
 import math
 
 
@@ -57,7 +57,7 @@ class MyRobot(wpilib.TimedRobot):
         self.navx = navx.AHRS.create_spi(update_rate_hz=100)
     def autonomousInit(self):
         autoPlanName = "default"
-        self.autonomousController = autonomous.autonomous(autoPlanName)
+        self.autonomousController = autonomous(autoPlanName)
         self.navx.reset()
         self.navx.resetDisplacement()
     def autonomousPeriodic(self):

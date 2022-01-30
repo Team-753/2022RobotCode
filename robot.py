@@ -1,52 +1,18 @@
-'''
-GOALS:
-    - Have an easily customizable autonomous mode that can take coordinate inputs and do those movements
-        -- python GUI app that outputs vector data and autonomous "map" into a csv
-        -- autonomous reads a csv
-        -- Figure out how to actually go an exact distance without guessing & checking times
-            --- Can be done using circumference of wheels
-    - Working swerve drive
-    - Configuration file (preferabbly json) for most if not all robot settings
-    - Communicate with vision using networktables
-    - Get motor framework down (assume we are using talonfx controllers)
-    -- Nearly all completed
-TODO:
-- Not really anything as far as a bare bones only falcon drivetrain robot goes this is everything.
-- Still need to integrate vision but that is hard when you do not even know what your robot will be doing
-- Still need to integrate auxiliary files but yet again without any auxiliary systems as of yet, this is impossible
-- Need to implement different autonomous modes that can have a default and be toggleable we probably don't want to default to dumb autonomous
-
-NOTE - Current Features:
-- Autonomous including pathing and functions based on recorded session
-- Easy drivetrain zeroing through smartdashboard
-- Responsive drivetrain with PID control and functions such as coast and stationary
-- easily expandible auxiliary and drivetrain functions
-- easier to read and edit settings through the external config.json file
-
-How to use:
-- Teleoperated Mode:
-  - Pretty self-explanatory
-  
-- Autonomous Mode:
-  - Runs the pre-selected autonomous mode set in smartdashboard, the default is called "default"
-
-- Test Mode:
-  - Records an autonomous path and exports it --ON THE ROBORIO-- using datetime and is located in paths, would recommend using winscp
-    to retrieve json
-
-Installing Dependencies:
-py -3.99 -m pip install robotpy robotpy-ctre robotpy-navx
-'''
+from typing import Tuple
 import wpilib
 import json
 import os
-import testing.buster.driveTrain as driveTrain
-import driverStation
 from time import strftime, gmtime
 from networktables import NetworkTables
 import navx
 import threading
-import autonomous
+from subsystems.driveTrain import driveTrain
+from controlsystems.autonomous import autonomous
+from controlsystems.driverStation import driverStation
+from subsystems.climber import Climber
+from subsystems.intake import Intake
+from subsystems.driveTrain import driveTrain
+from subsystems.tower import Shooter, Feeder, ballClimber
 
 '''cond = threading.Condition()
 notified = False
@@ -63,16 +29,12 @@ vision = NetworkTables.getTable('aetherVision')'''
 class MyRobot(wpilib.TimedRobot):
 
     def robotInit(self):
-        '''
-        This function is called upon program startup and
-        should be used for any initialization code.
-        '''
         folderPath = os.path.dirname(os.path.abspath(__file__))
         filePath = os.path.join(folderPath, 'config.json')
         with open (filePath, "r") as f1:
             self.config = json.load(f1)
-        self.driveTrain = driveTrain.driveTrain(self.config)
-        self.driverStation = driverStation.driverStation(self.config)
+        self.driveTrain = driveTrain(self.config)
+        self.driverStation = driverStation(self.config)
         self.navx = navx.AHRS.create_spi()
         self.navx.reset()
         self.Timer = wpilib.Timer()
@@ -101,7 +63,7 @@ class MyRobot(wpilib.TimedRobot):
         # deadzones are already filtered so no reason to do any of that here
         if self.autonomousMode == "dumb":
             if (self.autonomousIteration < len(self.autoPlan)): # to prevent any index out of range errors
-                switches = self.autoPlan[self.autonomousIteration]
+                switches = self.autoPlan[self.autonomousIteration] # this line currently breaks the code; indexing a dictionary
             if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
                 # auto is over
                 self.Timer.stop()
@@ -115,24 +77,13 @@ class MyRobot(wpilib.TimedRobot):
             self.driveTrain.manualMove(x, y, z)
 
     def teleopInit(self):
-        self.navx.reset()
-        self.driveTrain.refreshValues()
-        self.enabledToZero = False
+        self.navx.reset() # NOTE: In production code get rid of this line
         
     def teleopPeriodic(self):
         '''This function is called periodically during operator control.'''
-        if not self.enabledToZero:
-            self.driveTrain.enableToZeros()
-            driveData = self.driveTrain.refreshValues()
-            for module in driveData:
-                motorPosition = module[0]
-                if motorPosition + 0.25 > 0 and motorPosition - 0.25 < 0:
-                    self.enabledToZero = True
-        
-        else:
-            switches = self.driverStation.checkSwitches()
-            switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones(switches["driverX"], switches["driverY"], switches["driverZ"])
-            self.switchActions(switches)
+        switches = self.driverStation.checkSwitches()
+        switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"]))
+        self.switchActions(switches)
         
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
@@ -178,21 +129,20 @@ class MyRobot(wpilib.TimedRobot):
         if switchDict["swapFieldOrient"]:
             self.driveTrain.fieldOrient = not self.driveTrain.fieldOrient # swaps field orient to its opposite value
             wpilib.SmartDashboard.putBoolean("Field Orient", self.driveTrain.fieldOrient)
-        if switchDict["playEasterEgg"]:
-            self.driveTrain.easterEgg()
         if switchDict["resetDriveTrainEncoders"]:
             self.driveTrain.reInitiateMotorEncoders()
+
+    def evaluateDeadzones(self, inputs: Tuple):
+        adjustedInputs = []
+        for idx, input in enumerate(inputs):
+            threshold = list(self.config["driverStation"]["joystickDeadZones"])[idx]
+            adjustedValue = (abs(input) - threshold) / (1 - threshold)
+            if input < 0 and adjustedValue != 0:
+                adjustedValue = -adjustedValue
+            adjustedInputs.append(adjustedValue)
+        return adjustedInputs
     
-    def evaluateDeadzones(self, x: float, y: float, z: float):
-        if not (x > self.config["driverStation"]["joystickDeadZones"]["xDeadZone"] or x < -self.config["driverStation"]["joystickDeadZones"]["xDeadZone"]):
-            x = 0
-        if not (y > self.config["driverStation"]["joystickDeadZones"]["yDeadZone"] or y < -self.config["driverStation"]["joystickDeadZones"]["yDeadZone"]):
-            y = 0
-        if not (z > self.config["driverStation"]["joystickDeadZones"]["zDeadZone"] or z < -self.config["driverStation"]["joystickDeadZones"]["zDeadZone"]):
-            z = 0
-        return x, y, z
-    
-    def stopAll(self):
+    def nonEmergencyStop(self):
         ''' Exactly as it says, stops all of the functions of the robot '''
         self.driveTrain.stationary()
         # will add more as they come
