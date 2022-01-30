@@ -40,7 +40,6 @@ class MyRobot(wpilib.TimedRobot):
         self.Timer = wpilib.Timer()
         self.autonomousMode = "smart" # alternatively "dumb"
         
-        self.compressor = wpilib.Compressor(0)
 
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
@@ -51,6 +50,7 @@ class MyRobot(wpilib.TimedRobot):
             self.autonomousIteration = 0
             self.navx.reset()
             self.Timer.reset()
+
         elif self.autonomousMode == "smart":
             autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
             self.autonomousController = autonomous.autonomous(autoPlanName)
@@ -64,14 +64,18 @@ class MyRobot(wpilib.TimedRobot):
         if self.autonomousMode == "dumb":
             if (self.autonomousIteration < len(self.autoPlan)): # to prevent any index out of range errors
                 switches = self.autoPlan[self.autonomousIteration] # this line currently breaks the code; indexing a dictionary
+
             if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
                 # auto is over
                 self.Timer.stop()
                 self.stopAll()
+
             else:
                 self.switchActions(switches)
+
             self.autonomousIteration += 1
             self.driveTrain.refreshValues()
+
         elif self.autonomousMode == "smart":
             x, y, z, auxiliary = self.autonomousController.periodic(self.navx.getDisplacementX() * 39.37008, self.navx.getDisplacementY() * 39.37008) # need to eventually add support for auxiliary systems
             self.driveTrain.manualMove(x, y, z)
@@ -104,6 +108,7 @@ class MyRobot(wpilib.TimedRobot):
             if switches["driverX"] != 0 or switches["driverY"] != 0 or switches["driverZ"] != 0:
                 self.hasMoved = True
                 self.Timer.start()
+
         if self.hasMoved:
             if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
                 # autonomous recording period has ended
@@ -114,21 +119,26 @@ class MyRobot(wpilib.TimedRobot):
                 dt_gmt = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
                 with open(f"{os.path.dirname(os.path.abspath(__file__))}/paths/{dt_gmt}.json", 'w') as path:
                     path.write(json.dump(self.autonomousSwitchList))
+
             if self.recording:
                 switches["time"] = self.Timer.get()
                 self.autonomousSwitchList.append(switches) # adds 50x a second a little excessive maybe but needs to capture all inputs
                 self.switchActions(switches)
+
         self.driveTrain.refreshValues()
             
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''
         if switchDict["driverX"] != 0 or switchDict["driverY"] != 0 or switchDict["driverZ"] != 0:
             self.driveTrain.manualMove(switchDict["driverX"], switchDict["driverY"], switchDict["driverZ"], switchDict["navxAngle"])
+
         else:
             self.driveTrain.stationary()
+
         if switchDict["swapFieldOrient"]:
             self.driveTrain.fieldOrient = not self.driveTrain.fieldOrient # swaps field orient to its opposite value
             wpilib.SmartDashboard.putBoolean("Field Orient", self.driveTrain.fieldOrient)
+
         if switchDict["resetDriveTrainEncoders"]:
             self.driveTrain.reInitiateMotorEncoders()
 
@@ -137,9 +147,11 @@ class MyRobot(wpilib.TimedRobot):
         for idx, input in enumerate(inputs):
             threshold = list(self.config["driverStation"]["joystickDeadZones"])[idx]
             adjustedValue = (abs(input) - threshold) / (1 - threshold)
+
             if input < 0 and adjustedValue != 0:
                 adjustedValue = -adjustedValue
             adjustedInputs.append(adjustedValue)
+            
         return adjustedInputs
     
     def nonEmergencyStop(self):

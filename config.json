@@ -25,7 +25,25 @@
       "encoderOffset": 0.0
     }
   },
-  "Climber": {},
+  "Climber": {
+    "leftShoulder_ID": 15,
+    "rightShoulder_ID": 16,
+    "leftWinch_ID": 13,
+    "leftWinchLimitSwitch_DIO_ID": 0,
+    "rightWinch_ID": 14,
+    "rightWinchLimitSwitch_DIO_ID": 1,
+    "leftHook_PCM_ID": 0,
+    "rightHook_PCM_ID": 1
+  },
+  "Intake": {
+
+  },
+  "Shooter": {
+
+  },
+  "Tower": {
+
+  },
   "RobotDimensions": {
     "trackWidth": 36,
     "wheelBase": 48,
