@@ -1,8 +1,7 @@
 # All imports at the top of the file, including the other files we made in the repository.
 import wpilib
 import navx
-import driveTrain
-import autonomous
+from parent
 import math
 import time
 
