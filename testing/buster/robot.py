@@ -10,7 +10,8 @@ import time
 config = {
 	"PCM": {
 		"pistonForward_ID": 1,
-		"pistonReverse_ID": 0
+		"pistonReverse_ID": 0,
+		"PCM_ID": 61
 	},
 	"SwerveModules": {
 		"frontLeft": {
@@ -63,7 +64,7 @@ class MyRobot(wpilib.TimedRobot):
 
 
 
-				self.piston = wpilib.DoubleSolenoid(config["PCM"]["pistonForward_ID"], config["PCM"]["pistonReverse_ID"])
+				self.piston = wpilib.DoubleSolenoid(reverseChannel=config["PCM"]["pistonForward_ID"], forwardChannel=config["PCM"]["pistonReverse_ID"], moduleNumber=config["PCM"]["PCM_ID"])
 
 
 		def autonomousInit(self):
@@ -99,12 +100,21 @@ class MyRobot(wpilib.TimedRobot):
 
 
 
-				timeCycle = time.time % 4
-				if timeCycle > 1 and timeCycle < 2:
+				
+				if self.driverInput.getRawButton(10):
+					print("piston forward")
+					wpilib.SmartDashboard.putBoolean("Piston Forward", True)
+					wpilib.SmartDashboard.putBoolean("Piston Reverse", False)
 					self.piston.set(wpilib.DoubleSolenoid.Value.kForward)
-				elif timeCycle > 3 and timeCycle < 4:
+				elif self.driverInput.getRawButton(11):
+					print("piston reverse")
+					wpilib.SmartDashboard.putBoolean("Piston Forward", False)
+					wpilib.SmartDashboard.putBoolean("Piston Reverse", True)
 					self.piston.set(wpilib.DoubleSolenoid.Value.kReverse)
 				else:
+					wpilib.SmartDashboard.putBoolean("Piston Reverse", False)
+					wpilib.SmartDashboard.putBoolean("Piston Forward", False)
+					print("piston off")
 					self.piston.set(wpilib.DoubleSolenoid.Value.kOff)
 
 
