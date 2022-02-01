@@ -1,7 +1,8 @@
 # All imports at the top of the file, including the other files we made in the repository.
 import wpilib
 import navx
-from parent
+import driveTrain
+import autonomous
 import math
 import time
 
@@ -60,7 +61,10 @@ class MyRobot(wpilib.TimedRobot):
 				self.driveTrain = driveTrain.driveTrain(config)
 				self.navx = navx.AHRS.create_spi(update_rate_hz=100)
 
-				self.piston = wpilib.DoubleSolenoid(wpilib.PneumaticsModuleType.CTREPCM, config["PCM"]["pistonForward_ID"], config["PCM"]["pistonReverse_ID"])
+
+
+				self.piston = wpilib.DoubleSolenoid(config["PCM"]["pistonForward_ID"], config["PCM"]["pistonReverse_ID"])
+
 
 		def autonomousInit(self):
 				autoPlanName = "default"
@@ -93,12 +97,17 @@ class MyRobot(wpilib.TimedRobot):
 				wpilib.SmartDashboard.putNumber("navx X Displacement:", self.navx.getDisplacementX())
 				wpilib.SmartDashboard.putNumber("navx Z Displacement:", self.navx.getDisplacementZ())
 
-				if self.driverInput.getRawButton(10):
-					self.piston.set(1)
-				elif self.driverInput.getRawButton(11):
-					self.piston.set(2)
+
+
+				timeCycle = time.time % 4
+				if timeCycle > 1 and timeCycle < 2:
+					self.piston.set(wpilib.DoubleSolenoid.Value.kForward)
+				elif timeCycle > 3 and timeCycle < 4:
+					self.piston.set(wpilib.DoubleSolenoid.Value.kReverse)
 				else:
-					self.piston.set(0)
+					self.piston.set(wpilib.DoubleSolenoid.Value.kOff)
+
+
 						
 		def testInit(self):
 				pass
