@@ -2,7 +2,7 @@ from ctre._ctre import AbsoluteSensorRange, SensorInitializationStrategy
 import wpilib
 import ctre
 from wpilib._wpilib import Joystick
-import wpilib.controller
+import wpimath.controller
 import math
 
 class MyRobot(wpilib.TimedRobot):
@@ -20,7 +20,7 @@ class MyRobot(wpilib.TimedRobot):
         self.kP = 0.005
         self.kI = 0.0025
         self.kD = 0
-        self.turnController = wpilib.controller.PIDController(self.kP, self.kI, self.kD)
+        self.turnController = wpimath.controller.PIDController(self.kP, self.kI, self.kD)
         self.turnController.enableContinuousInput(-180, 180)
         self.previousTarget = 0
         self.initiateModule()
@@ -51,7 +51,7 @@ class MyRobot(wpilib.TimedRobot):
             self.kP = self.nkP
             self.kI = self.nkI
             self.kD = self.nkD
-            self.turnController = wpilib.controller.PIDController(self.kP, self.kI, self.kD)
+            self.turnController = wpimath.controller.PIDController(self.kP, self.kI, self.kD)
         self.diagnosticPeriodic()
         x = self.joystick.getX()
         y = self.joystick.getY()

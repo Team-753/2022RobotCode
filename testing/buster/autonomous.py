@@ -3,7 +3,7 @@ import math
 import os
 from hal import initialize
 import wpilib
-import wpilib.controller
+import wpimath.controller
 
 path = {
     "initialization": {

@@ -5,9 +5,8 @@ import math
 import ctre
 import json
 import os
-import wpilib.controller
-import wpimath.kinematics
-
+import wpilib
+import wpimath.controller
 # TODO: Figure out angle conversion stuff bc it still might be in unit circle -180->180, and also find an actual talonFX brake function
 
 class driveTrain:
@@ -151,7 +150,7 @@ class swerveModule:
         self.absoluteEncoder.configAbsoluteSensorRange(AbsoluteSensorRange.Signed_PlusMinus180)
         self.absoluteEncoder.configMagnetOffset(self.absoluteOffset)
         
-        self.turnController = wpilib.controller.PIDController(kPTurn, kITurn, kDTurn)
+        self.turnController = wpimath.controller.PIDController(kPTurn, kITurn, kDTurn)
         self.turnController.enableContinuousInput(-180, 180)
         self.turnController.setTolerance(0.1) # change this number to change accuracy and jitter of motor
         self.moduleReversed = False
