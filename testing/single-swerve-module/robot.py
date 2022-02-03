@@ -17,7 +17,10 @@ class MyRobot(wpilib.TimedRobot):
         self.absoluteEncoder.configAbsoluteSensorRange(AbsoluteSensorRange.Signed_PlusMinus180)
         self.turnMotor.configIntegratedSensorAbsoluteRange(AbsoluteSensorRange.Unsigned_0_to_360)
         #self.turnMotor.config
-        self.turnController = wpilib.controller.PIDController(0.005, 0.0025, 0)
+        self.kP = 0.005
+        self.kI = 0.0025
+        self.kD = 0
+        self.turnController = wpilib.controller.PIDController(self.kP, self.kI, self.kD)
         self.turnController.enableContinuousInput(-180, 180)
         self.previousTarget = 0
         self.initiateModule()
@@ -35,10 +38,20 @@ class MyRobot(wpilib.TimedRobot):
     def teleopInit(self) -> None:
         self.joystick = wpilib.Joystick(0)
         self.turnMotor.setSelectedSensorPosition(self.absoluteEncoder.getAbsolutePosition() *2048*12.8/360)
-    
+        wpilib.SmartDashboard.putNumber("kP", self.kP)
+        wpilib.SmartDashboard.putNumber("kI", self.kI)
+        wpilib.SmartDashboard.putNumber("kD", self.kD)
     def teleopPeriodic(self) -> None:
         '''self.targetAngle = wpilib.SmartDashboard.getNumber("target:", 180)
         self.turnOnly(self.targetAngle)'''
+        self.nkP = wpilib.SmartDashboard.getNumber("kP", self.kP)
+        self.nkI = wpilib.SmartDashboard.getNumber("kI", self.kI)
+        self.nkD = wpilib.SmartDashboard.getNumber("kD", self.kD)
+        if self.nkP != self.kP or self.nkI != self.kI or self.nkD != self.nkD:
+            self.kP = self.nkP
+            self.kI = self.nkI
+            self.kD = self.nkD
+            self.turnController = wpilib.controller.PIDController(self.kP, self.kI, self.kD)
         self.diagnosticPeriodic()
         x = self.joystick.getX()
         y = self.joystick.getY()
@@ -53,10 +66,10 @@ class MyRobot(wpilib.TimedRobot):
             self.turnOnly(angle)
             speed = math.hypot(x, y) / 4
             wpilib.SmartDashboard.putNumber("speed:", speed)
-            self.driveMotor.set(ctre.ControlMode.PercentOutput, speed)
+            #self.driveMotor.set(ctre.ControlMode.PercentOutput, speed)
         else:
             self.turnOnly(self.previousTarget)
-            self.driveMotor.set(ctre.ControlMode.PercentOutput, 0)
+            #self.driveMotor.set(ctre.ControlMode.PercentOutput, 0)
             wpilib.SmartDashboard.putNumber("speed:", 0)
             
             
