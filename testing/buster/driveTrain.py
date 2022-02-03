@@ -154,6 +154,7 @@ class swerveModule:
         self.turnController = wpilib.controller.PIDController(kPTurn, kITurn, kDTurn)
         self.turnController.enableContinuousInput(-180, 180)
         self.turnController.setTolerance(0.1) # change this number to change accuracy and jitter of motor
+        self.moduleReversed = False
         
         self.initMotorEncoder()
     
@@ -170,7 +171,9 @@ class swerveModule:
         motorPosition = self.motorPosition()
         if motorPosition > 180:
             motorPosition -= 360
-        direction, motorPosition = self.optimize(motorPosition, angle)
+        motorPosition = self.optimize(motorPosition, angle)
+        if self.moduleReversed:
+            magnitude = -magnitude
         self.turnController.setSetpoint(angle)
         turnSpeed = self.turnController.calculate(motorPosition)
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
@@ -181,6 +184,7 @@ class swerveModule:
         # may need to implement a thing for the turncontroller to still run in here if it had a previous target it never met
         self.driveMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
         self.turnMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
+        self.brake()
         
     def coast(self):
         ''' Coasts the swerve module '''
@@ -215,16 +219,17 @@ class swerveModule:
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
         
     def optimize(self, moduleAngle, moduleTarget):
-        return 1, moduleAngle
-    '''def rewriteZeros(self):
-        rawAbsolute = self.absoluteEncoder.getAbsolutePosition() - self.absoluteOffset
-        with open (f"{os.path.dirname(os.path.abspath(__file__))}/config.json", "r") as f1:
-            config = json.load(f1)
-        config["SwerveModules"][self.moduleName]["encoderOffset"] = -rawAbsolute
-        with open (f"{os.path.dirname(os.path.abspath(__file__))}/config.json", "w") as f2:
-            f2.write(json.dump(config, indent=2))
-        self.absoluteOffset = -rawAbsolute
-        self.initMotorEncoder()'''
+        normal = abs(moduleAngle - moduleTarget)
+        oppositeAngle = moduleAngle - 180
+        if oppositeAngle < -180:
+            oppositeAngle += 360
+        opposite = abs(oppositeAngle - moduleTarget)
+        if opposite < normal:
+            self.directionReversed = True
+            return oppositeAngle
+        else:
+            self.directionReversed = False
+            return moduleAngle
     
     def returnValues(self):
         motorPosition = self.motorPosition()

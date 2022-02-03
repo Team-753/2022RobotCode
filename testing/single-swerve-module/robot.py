@@ -7,9 +7,9 @@ import math
 
 class MyRobot(wpilib.TimedRobot):
     def robotInit(self):
-        turnOffset = -20
-        self.turnMotor = ctre.TalonFX(1)
-        self.driveMotor = ctre.TalonFX(3)
+        turnOffset = 16.787
+        self.turnMotor = ctre.TalonFX(3)
+        self.driveMotor = ctre.TalonFX(1)
         self.absoluteEncoder = ctre.CANCoder(2)
         self.absoluteEncoder.configMagnetOffset(turnOffset)
         #self.driveMotor = ctre.TalonFX(2)
@@ -24,10 +24,11 @@ class MyRobot(wpilib.TimedRobot):
         self.turnController.enableContinuousInput(-180, 180)
         self.previousTarget = 0
         self.initiateModule()
+        self.directionReversed = False
         # self.turnMotor.configIntegratedSensorInitializationStrategy(SensorInitializationStrategy.BootToAbsolutePosition)
         
     def initiateModule(self):
-        self.turnMotor.setSelectedSensorPosition(self.absoluteEncoder.getAbsolutePosition() *2048*12.8/360)
+        self.turnMotor.setSelectedSensorPosition(int(self.absoluteEncoder.getAbsolutePosition() *2048*12.8/360))
         
     def zeroModule(self):
         pass
@@ -37,7 +38,6 @@ class MyRobot(wpilib.TimedRobot):
     
     def teleopInit(self) -> None:
         self.joystick = wpilib.Joystick(0)
-        self.turnMotor.setSelectedSensorPosition(self.absoluteEncoder.getAbsolutePosition() *2048*12.8/360)
         wpilib.SmartDashboard.putNumber("kP", self.kP)
         wpilib.SmartDashboard.putNumber("kI", self.kI)
         wpilib.SmartDashboard.putNumber("kD", self.kD)
@@ -57,19 +57,22 @@ class MyRobot(wpilib.TimedRobot):
         y = self.joystick.getY()
         wpilib.SmartDashboard.putNumber("X:", x)
         wpilib.SmartDashboard.putNumber("Y:", y)
-        if (x > 0.1 or x < -0.1) or (y > 0.1 or y < -0.1):
+        if (x > 0.25 or x < -0.25) or (y > 0.25 or y < -0.25):
             angle = math.degrees(math.atan2(x, y))
             if angle > 180:
                 angle -= 180
             self.previousTarget = angle
-            wpilib.SmartDashboard.putNumber("angle:", angle)
+            wpilib.SmartDashboard.putNumber("targetAngle:", angle)
             self.turnOnly(angle)
             speed = math.hypot(x, y) / 4
             wpilib.SmartDashboard.putNumber("speed:", speed)
-            #self.driveMotor.set(ctre.ControlMode.PercentOutput, speed)
+            if self.directionReversed:
+                speed = -speed
+            self.driveMotor.set(ctre.ControlMode.PercentOutput, speed)
         else:
-            self.turnOnly(self.previousTarget)
-            #self.driveMotor.set(ctre.ControlMode.PercentOutput, 0)
+            self.turnMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
+            self.turnMotor.setNeutralMode(ctre.NeutralMode.Brake)
+            self.driveMotor.set(ctre.ControlMode.PercentOutput, 0)
             wpilib.SmartDashboard.putNumber("speed:", 0)
             
             
@@ -80,7 +83,7 @@ class MyRobot(wpilib.TimedRobot):
         if motorPosition > 180:
             motorPosition -= 360
         absolutePosition = self.absoluteEncoder.getAbsolutePosition()
-        angleTolerance = 5
+        angleTolerance = 1
         # checking tolerances
         if motorPosition + angleTolerance > absolutePosition and motorPosition - angleTolerance < absolutePosition:
             wpilib.SmartDashboard.putBoolean("within range", True)
@@ -102,14 +105,28 @@ class MyRobot(wpilib.TimedRobot):
         motorPosition = ((motorPosition % (2048*12.8)) * 360/(2048*12.8))
         if motorPosition > 180:
             motorPosition -= 360
-        wpilib.SmartDashboard.putNumber("internalPosition:", motorPosition)
+        wpilib.SmartDashboard.putNumber("modulePosition:", motorPosition)
         wpilib.SmartDashboard.putNumber("absolutePosition:", self.absoluteEncoder.getAbsolutePosition())
+        motorPosition = self.optimize(motorPosition, angle)
         self.turnController.setSetpoint(angle)
         turnSpeed = self.turnController.calculate(motorPosition)
         '''turnDeadBand = 0.01
         if turnSpeed < turnDeadBand:
             turnSpeed = 0'''
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
+        
+    def optimize(self, moduleAngle, moduleTarget):
+        normal = abs(moduleAngle - moduleTarget)
+        oppositeAngle = moduleAngle - 180
+        if oppositeAngle < -180:
+            oppositeAngle += 360
+        opposite = abs(oppositeAngle - moduleTarget)
+        if opposite < normal:
+            self.directionReversed = True
+            return oppositeAngle
+        else:
+            self.directionReversed = False
+            return moduleAngle
         
 
 if __name__ == "__main__":
