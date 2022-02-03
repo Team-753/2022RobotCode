@@ -1,3 +1,4 @@
+from pickletools import optimize
 from ctre._ctre import AbsoluteSensorRange, SensorInitializationStrategy
 import wpilib
 import math
@@ -5,34 +6,28 @@ import ctre
 import json
 import os
 import wpilib.controller
+import wpimath.kinematics
 
 # TODO: Figure out angle conversion stuff bc it still might be in unit circle -180->180, and also find an actual talonFX brake function
 
 class driveTrain:
     def __init__(self, config: dict):
+        self.swerveModules = {
+            "frontLeft": None,
+            "frontRight": None,
+            "rearLeft": None,
+            "rearRight": None
+        }
         self.config = config
         self.trackWidth = self.config["RobotDimensions"]["trackWidth"]
         self.wheelBase = self.config["RobotDimensions"]["wheelBase"]
         self.fieldOrient = bool(self.config["RobotDefaultSettings"]["fieldOrient"])
-        
-        fLConfig = self.config["SwerveModules"]["frontLeft"]
-        fRConfig = self.config["SwerveModules"]["frontRight"]
-        rLConfig = self.config["SwerveModules"]["rearLeft"]
-        rRConfig = self.config["SwerveModules"]["rearRight"]
-        
-        self.frontLeft = swerveModule(fLConfig["motor_ID_1"], fLConfig["motor_ID_2"], fLConfig["encoder_ID"], fLConfig["encoderOffset"], "frontLeft")
-        self.frontRight = swerveModule(fRConfig["motor_ID_1"], fRConfig["motor_ID_2"], fRConfig["encoder_ID"], fRConfig["encoderOffset"], "frontRight")
-        self.rearLeft = swerveModule(rLConfig["motor_ID_1"], rLConfig["motor_ID_2"], rLConfig["encoder_ID"], rLConfig["encoderOffset"], "rearLeft")
-        self.rearRight = swerveModule(rRConfig["motor_ID_1"], rRConfig["motor_ID_2"], rRConfig["encoder_ID"], rRConfig["encoderOffset"], "rearRight")
-        self.frontLeft.initMotorEncoder()
-        self.frontRight.initMotorEncoder()
-        self.rearLeft.initMotorEncoder()
-        self.rearRight.initMotorEncoder()
-        
-        
-        #self.easterEgg = self.config["RobotDefaultSettings"]["easterEgg"]
-        #self.orchestra = ctre.Orchestra()
-        #self.orchestra.addInstrument(self.frontLeft.driveMotor, self.frontLeft.turnMotor, self.frontRight.driveMotor, self.frontRight.turnMotor, self.rearLeft.driveMotor, self.rearLeft.turnMotor, self.rearRight.driveMotor, self.rearRight.turnMotor)
+        # LConfig = self.config["SwerveModules"]["frontLeft"]
+        for i in range(4):
+            moduleName = list(self.config["SwerveModules"])[i]
+            swerveConfig = self.config["SwerveModules"][moduleName]
+            self.swerveModules[moduleName] = swerveModule(swerveConfig["motor_ID_1"], swerveConfig["motor_ID_2"], swerveConfig["encoder_ID"], swerveConfig["encoderOffset"], moduleName)
+            self.swerveModules[moduleName].initMotorEncoder()
 
     def rotateCartesianPlane(self, angle: float, x: float, y: float):
         newX = x*math.sin(angle) - y*math.cos(angle)
@@ -60,9 +55,6 @@ class driveTrain:
             translationVector = self.rotateCartesianPlane(angleRadians, joystickX, joystickY)
         else:
             translationVector = (joystickX, joystickY)
-        wpilib.SmartDashboard.putNumber("Interpreted X:", joystickX)
-        wpilib.SmartDashboard.putNumber("Interpreted Y:", joystickY)
-        wpilib.SmartDashboard.putNumber("Interpreted Z:", joystickRotation)
 
         fLRotationVectorAngle = (math.atan2(self.wheelBase, -1*self.trackWidth) - (math.pi/2))
         fRRotationVectorAngle = (math.atan2(self.wheelBase, self.trackWidth) - (math.pi/2))
@@ -96,54 +88,38 @@ class driveTrain:
             rLSpeed /= maxSpeed
             rRSpeed /= maxSpeed
 
-        self.frontLeft.move(fLSpeed, fLAngle)
-        self.frontRight.move(fRSpeed, fRAngle)
-        self.rearLeft.move(rLSpeed, rLAngle)
-        self.rearRight.move(rRSpeed, rRAngle)
+        self.swerveModules["frontLeft"].move(fLSpeed, fLAngle)
+        self.swerveModules["frontRight"].move(fRSpeed, fRAngle)
+        self.swerveModules["rearLeft"].move(rLSpeed, rLAngle)
+        self.swerveModules["rearRight"].move(rRSpeed, rRAngle)
 
     def reInitiateMotorEncoders(self):
         ''' Call this when actually re-zeroing the motor absolutes '''
-        self.frontLeft.initMotorEncoder()
-        self.frontRight.initMotorEncoder()
-        self.rearLeft.initMotorEncoder()
-        self.rearRight.initMotorEncoder()
+        self.swerveModules["frontLeft"].initMotorEncoder()
+        self.swerveModules["frontRight"].initMotorEncoder()
+        self.swerveModules["rearLeft"].initMotorEncoder()
+        self.swerveModules["rearRight"].initMotorEncoder()
         
     def stationary(self):
         ''' Makes the robot's drivetrain stationary '''
-        self.frontLeft.stationary()
-        self.frontRight.stationary()
-        self.rearLeft.stationary()
-        self.rearRight.stationary()
+        self.swerveModules["frontLeft"].stationary()
+        self.swerveModules["frontRight"].stationary()
+        self.swerveModules["rearLeft"].stationary()
+        self.swerveModules["rearRight"].stationary()
 
     def coast(self):
         ''' Coasts the robot's drivetrain '''
-        self.frontLeft.coast()
-        self.frontRight.coast()
-        self.rearLeft.coast()
-        self.rearRight.coast()
+        self.swerveModules["frontLeft"].coast()
+        self.swerveModules["frontRight"].coast()
+        self.swerveModules["rearLeft"].coast()
+        self.swerveModules["rearRight"].coast()
         
     def refreshValues(self):
-        frontLeftValues = self.frontLeft.returnValues()
-        frontRightValues = self.frontRight.returnValues()
-        rearLeftValues = self.rearLeft.returnValues()
-        rearRightValues = self.rearRight.returnValues()
-        '''wpilib.SmartDashboard.putNumberArray("frontLeft", frontLeftValues)
-        wpilib.SmartDashboard.putNumberArray("frontRight", frontRightValues)
-        wpilib.SmartDashboard.putNumberArray("rearLeft", rearLeftValues)
-        wpilib.SmartDashboard.putNumberArray("rearRight", rearRightValues)'''
+        frontLeftValues = self.swerveModules["frontLeft"].returnValues()
+        frontRightValues = self.swerveModules["frontRight"].returnValues()
+        rearLeftValues = self.swerveModules["rearLeft"].returnValues()
+        rearRightValues = self.swerveModules["rearRight"].returnValues()
         return frontLeftValues, frontRightValues, rearLeftValues, rearRightValues
-        
-    def easterEgg(self):
-        ''' Plays a pre-set tune on the motors;
-            This can be interrupted by using pause or set on the TalonFX controllers'''
-        '''self.orchestra.loadMusic(f"{os.getcwd()}./tunes/{self.easterEgg}.chrp")
-        self.orchestra.play()'''
-        
-    def enableToZeros(self):
-        self.frontLeft.enableToZero()
-        self.frontRight.enableToZero()
-        self.rearLeft.enableToZero()
-        self.rearRight.enableToZero()
     
 class swerveModule:
     def __init__(self, driveID: int, turnID: int, absoluteID: int, absoluteOffset: float, moduleName: str):
@@ -163,6 +139,7 @@ class swerveModule:
         self.CPR = 2048
         self.turningGearRatio = 12.8 # The steering motor gear ratio
         self.drivingGearRatio = 8.14 # The driving motor gear ratio
+        self.speedLimitingFactor = 0.5
         self.moduleName = moduleName
         self.absoluteOffset = -absoluteOffset
         
@@ -176,7 +153,6 @@ class swerveModule:
         
         self.turnController = wpilib.controller.PIDController(kPTurn, kITurn, kDTurn)
         self.turnController.enableContinuousInput(-180, 180)
-        self.previousTarget = 0
         self.turnController.setTolerance(0.1) # change this number to change accuracy and jitter of motor
         
         self.initMotorEncoder()
@@ -191,15 +167,14 @@ class swerveModule:
     def move(self, magnitude: float, angle: float):
         ''' Magnitude with an input range for 0-1, and an angle of -180->180'''
         angle = self.rotateUnitCircle(angle)
-        self.previousTarget = angle
-        wpilib.SmartDashboard.putNumber(f"{self.moduleName}:", angle)
         motorPosition = self.motorPosition()
         if motorPosition > 180:
             motorPosition -= 360
+        direction, motorPosition = self.optimize(motorPosition, angle)
         self.turnController.setSetpoint(angle)
         turnSpeed = self.turnController.calculate(motorPosition)
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
-        self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude * 1)
+        self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude * self.speedLimitingFactor)
         
     def stationary(self):
         ''' Keeps the swerve module still. This implementation is pretty janky tbh '''
@@ -230,6 +205,7 @@ class swerveModule:
         motorPosition = ((motorPosition % (2048*12.8)) * 360/(2048*12.8))
         if motorPosition > 180:
             motorPosition -= 360
+        
         return motorPosition
     
     def enableToZero(self):
@@ -238,6 +214,8 @@ class swerveModule:
         turnSpeed = self.turnController.calculate(motorPosition)
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
         
+    def optimize(self, moduleAngle, moduleTarget):
+        return 1, moduleAngle
     '''def rewriteZeros(self):
         rawAbsolute = self.absoluteEncoder.getAbsolutePosition() - self.absoluteOffset
         with open (f"{os.path.dirname(os.path.abspath(__file__))}/config.json", "r") as f1:

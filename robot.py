@@ -43,42 +43,9 @@ class MyRobot(wpilib.TimedRobot):
 
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
-        if self.autonomousMode == "dumb":
-            autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
-            with open(f"{os.path.dirname(os.path.abspath(__file__))}/paths/{autoPlanName}.json", 'r') as plan:  
-                self.autoPlan = json.load(plan)
-            self.autonomousIteration = 0
-            self.navx.reset()
-            self.Timer.reset()
 
-        elif self.autonomousMode == "smart":
-            autoPlanName = wpilib.SmartDashboard.getString("Auto Plan", "default")
-            self.autonomousController = autonomous.autonomous(autoPlanName)
-            self.navx.reset()
-            self.navx.resetDisplacement()
-        
-    
     def autonomousPeriodic(self):
         '''This function is called periodically during autonomous.'''
-        # deadzones are already filtered so no reason to do any of that here
-        if self.autonomousMode == "dumb":
-            if (self.autonomousIteration < len(self.autoPlan)): # to prevent any index out of range errors
-                switches = self.autoPlan[self.autonomousIteration] # this line currently breaks the code; indexing a dictionary
-
-            if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
-                # auto is over
-                self.Timer.stop()
-                self.stopAll()
-
-            else:
-                self.switchActions(switches)
-
-            self.autonomousIteration += 1
-            self.driveTrain.refreshValues()
-
-        elif self.autonomousMode == "smart":
-            x, y, z, auxiliary = self.autonomousController.periodic(self.navx.getDisplacementX() * 39.37008, self.navx.getDisplacementY() * 39.37008) # need to eventually add support for auxiliary systems
-            self.driveTrain.manualMove(x, y, z)
 
     def teleopInit(self):
         self.navx.reset() # NOTE: In production code get rid of this line
@@ -142,17 +109,18 @@ class MyRobot(wpilib.TimedRobot):
         if switchDict["resetDriveTrainEncoders"]:
             self.driveTrain.reInitiateMotorEncoders()
 
-    def evaluateDeadzones(self, inputs: Tuple):
+    def evaluateDeadzones(self, inputs):
         adjustedInputs = []
         for idx, input in enumerate(inputs):
-            threshold = list(self.config["driverStation"]["joystickDeadZones"])[idx]
-            adjustedValue = (abs(input) - threshold) / (1 - threshold)
-
-            if input < 0 and adjustedValue != 0:
-                adjustedValue = -adjustedValue
+            threshold = self.config["driverStation"]["joystickDeadZones"][(list(self.config["driverStation"]["joystickDeadZones"])[idx])]
+            if abs(input) > threshold: 
+                adjustedValue = (abs(input) - threshold) / (1 - threshold)
+                if input < 0 and adjustedValue != 0:
+                    adjustedValue = -adjustedValue
+            else:
+                adjustedValue = 0
             adjustedInputs.append(adjustedValue)
-            
-        return adjustedInputs
+        return adjustedInputs[0], adjustedInputs[1], adjustedInputs[2]
     
     def nonEmergencyStop(self):
         ''' Exactly as it says, stops all of the functions of the robot '''
