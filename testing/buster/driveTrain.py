@@ -1,4 +1,3 @@
-from pickletools import optimize
 from ctre._ctre import AbsoluteSensorRange, SensorInitializationStrategy
 import wpilib
 import math
