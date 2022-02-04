@@ -1,7 +1,6 @@
 import json
 import math
 import os
-from hal import initialize
 import wpilib
 import wpimath.controller
 
@@ -44,13 +43,29 @@ class Autonomous:
             f2 = json.load(f1)
         return f2
     
-    def convertAngle(self, angle):
+    def convertAngle(self, angle: float):
         angle %= 360
         if angle < -180:
             angle += 360
         elif angle > 180:
             angle -= 360
-        return angle # is this still in unit circle degrees?
+        if angle < -90:
+            angle += 270
+        else:
+            angle -= 90
+        return(angle)
+    
+    def convertToXY(self, xDistance, yDistance, speed):
+        hypotenuse = math.hypot(xDistance, yDistance)
+        ratioX = xDistance/hypotenuse
+        ratioY = yDistance/hypotenuse
+        x = ratioX*speed
+        y = ratioY*speed
+        return(x, y)
+    
+    def passedTargetCheck(self, currentX, currentY, nextX, nextY):
+        pass
+    
     
     def periodic(self, navxAngle, navxXDisplacement, navxYDisplacement):
         xDisplacement = navxXDisplacement + self.xOffset
@@ -80,33 +95,47 @@ class ControlPoint:
         self.subPoint2Y = self.d*math.sin(self.theta) + self.y
 
 class CubicBSpline:
-    def __init__(self, points, numberOfPoints):
+    def __init__(self, points, numberOfPoints, startingAngle):
         self.points = points
         self.interpolatedList = []
+        self.pointIndex = 0
+        self.speedThreshold = 1
+        self.targetAngle = 0
+        self.startAngle = startingAngle
         for i in range(0,numberOfPoints):
             x, y = self.getPathPosition(i*(len(self.points)-1)/numberOfPoints)
-            stop = False
-            if i == numberOfPoints:
-                stop = True
-            point = {
-                "coordinates": {
-                    "x":x,
-                    "y":y
-                },
-                "stop": stop, # lol fix this
-                "rotation": 0, #temporary
-                "wait": False, # temporary
-                "speedFactor": 0.25 # very temporary
-            }
+            point = {}
             self.interpolatedList.append(point)
         return(self.interpolatedList)
 
     def getPathPosition(self, t):
+        point = {
+            "x": 0,
+            "y": 0,
+            "speed": 0,
+            "heading": 0,
+            "stop": False,
+            "actions": {}
+        }
         if t > (len(self.points) - 1):
             return(None)
+        if t > self.pointIndex:
+            self.speedThreshold = self.points[self.pointIndex]["speed"]
+            point["stop"] = self.points[self.pointIndex]["stop"]
+            point["actions"] = self.points[self.pointIndex]["actions"]
+            if t > 1:
+                self.startAngle = self.points[self.pointIndex - 1]["heading"]
+            self.targetAngle = self.points[self.pointIndex]["heading"]
+            self.pointIndex += 1
         startingPoint = int(t)
 
         t = t % 1
+        
+        heading = ((self.targetAngle - self.startAngle) * t) + self.startAngle
+        if heading > 180:
+            heading -= 360
+        elif heading < -180:
+            heading += 360
 
         P0 = self.points[startingPoint]
         P3 = self.points[startingPoint + 1]
@@ -123,4 +152,8 @@ class CubicBSpline:
         x = a*P0[0] + b*P1[0] + c*P2[0] + d*P3[0]
         y = a*P0[1] + b*P1[1] + c*P2[1] + d*P3[1]
 
-        return x, y
+        point["x"] = x
+        point["y"] = y
+        point["speed"] = self.speedThreshold
+        point["heading"] = heading
+        return point
