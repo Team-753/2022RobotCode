@@ -1,5 +1,4 @@
 from ctre._ctre import AbsoluteSensorRange, SensorInitializationStrategy
-import wpilib
 import math
 import ctre
 import json
@@ -32,7 +31,7 @@ class driveTrain:
         newY = x*math.cos(angle) + y*math.sin(angle)
         return(newX, newY)
 
-    def manualMove(self, joystickX: float, joystickY: float, joystickRotation: float, angle: float):
+    def move(self, joystickX: float, joystickY: float, joystickRotation: float, angle: float, autonomous: bool):
         '''
         This method takes the joystick inputs from the driverStation class. 
         First checking to see if it is field oriented and compensating for the navx angle if it is.
@@ -40,7 +39,8 @@ class driveTrain:
         '''
         
         #The joysticks y axis is inverted for some reason
-        joystickY = -joystickY
+        if not autonomous:
+            joystickY = -joystickY
         
         
         if self.fieldOrient:
@@ -156,7 +156,7 @@ class swerveModule:
         
         self.initMotorEncoder()
     
-    def rotateUnitCircle(self, angle):
+    def rotateUnitCircle(self, angle: float):
         if angle < -90:
             angle += 270
         else:
@@ -216,7 +216,7 @@ class swerveModule:
         turnSpeed = self.turnController.calculate(motorPosition)
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
         
-    def optimize(self, moduleAngle, moduleTarget):
+    def optimize(self, moduleAngle: float, moduleTarget: float):
         normal = abs(moduleAngle - moduleTarget)
         oppositeAngle = moduleAngle - 180
         if oppositeAngle < -180:
