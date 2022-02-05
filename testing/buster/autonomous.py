@@ -1,113 +1,84 @@
 import json
 import math
 import os
+
+import navx
 import wpilib
 import wpimath.controller
 
 path = {
     "initialization": {
-        "angle": 60,
+        "angle": -45,
         "xOffset": -72,
         "yOffset": -60,
-        "totalLength": 120
+        "pathLength": 120,
     },
     "controlPoints": [
         {
-        "x": 0,
-        "y": 0,
-        "theta": 0,
+        "x": -72,
+        "y": -60,
+        "theta": math.pi/2,
         "d": 0,
-        "speed": 1,
+        "speed": 0.75,
         "heading": 0,
         "stop": False,
         "actions": {}
-        }
+        },
+        {
+        "x": 0,
+        "y": 0,
+        "theta": math.pi,
+        "d": 0,
+        "speed": 1,
+        "heading": 45,
+        "stop": False,
+        "actions": {}
+        },
+        {
+        "x": 50,
+        "y": 50,
+        "theta": 0,
+        "d": 0,
+        "speed": 1,
+        "heading": 180,
+        "stop": True,
+        "actions": {}
+        },
     ]
 }
 
 class Autonomous:
-    def __init__(self, autonomousPathName):
-        self.unParsedPath = self.loadPath(autonomousPathName)
-        self.initialAngle = self.unParsedPath["initialization"]["angle"]
-        self.xOffset = self.unParsedPath["initialization"]["xOffset"]
-        self.yOffset = self.unParsedPath["initialization"]["yOffset"]
+    def __init__(self, autonomousPathName, nvxObj):
+        self.navx = navx.AHRS() #nvxObj
+        unParsedPath = autonomousPathName #unParsedPath = self.loadPath(autonomousPathName)
+        # self.initialAngle = unParsedPath["initialization"]["angle"]
+        self.navx.setAngleAdjustment(unParsedPath["initialization"]["angle"])
+        self.xOffset = unParsedPath["initialization"]["xOffset"]
+        self.yOffset = unParsedPath["initialization"]["yOffset"]
         points = []
-        for point in self.unParsedPath["controlPoints"]:
+        for point in unParsedPath["controlPoints"]:
             points.append(ControlPoint(point["x"], point["y"], point["theta"], point["d"], point["speed"], point["heading"], point["stop"], point["actions"]))
-        self.parsedPath = CubicBSpline(points, self.unParsedPath["initialization"]["totalLength"])
-    
-    def loadPath(self, pathName):
-        folderPath = os.path.dirname(os.path.abspath(__file__))
-        filePath = os.path.join(folderPath, f"paths/{pathName}.json")
-        with open (filePath, "r") as f1:
-            f2 = json.load(f1)
-        return f2
-    
-    def convertAngle(self, angle: float):
-        angle %= 360
-        if angle < -180:
-            angle += 360
-        elif angle > 180:
-            angle -= 360
-        if angle < -90:
-            angle += 270
-        else:
-            angle -= 90
-        return(angle)
-    
-    def convertToXY(self, xDistance, yDistance, speed):
-        hypotenuse = math.hypot(xDistance, yDistance)
-        ratioX = xDistance/hypotenuse
-        ratioY = yDistance/hypotenuse
-        x = ratioX*speed
-        y = ratioY*speed
-        return(x, y)
-    
-    def passedTargetCheck(self, currentX, currentY, nextX, nextY):
-        pass
-    
-    
-    def periodic(self, navxAngle, navxXDisplacement, navxYDisplacement):
-        xDisplacement = navxXDisplacement + self.xOffset
-        yDisplacement = navxYDisplacement + self.yOffset
-        angle = self.convertAngle(navxAngle)
+        self.generatedPath = self.generatePath(points, unParsedPath["initialization"]["pathLength"])
+        self.headingController = wpimath.controller.PIDController(0.005, 0.0025, 0) # needs some testing
+        self.headingController.enableContinuousInput(-180, 180)
+        self.speedController = wpimath.controller.PIDController(0.1, 0.05, 0) # god this needs sooo much testing
         
-class ControlPoint:
-    def __init__(self, x, y, theta, d, speed, heading, stop, actions):
-        self.x = x
-        self.y = y
-        self.theta = theta
-        self.d = d
-        self.speed = speed
-        self.heading = heading
-        self.stop = stop
-        self.actions = actions
-
-        self.subPoint1X = -1*self.d*math.cos(self.theta) + self.x
-        self.subPoint1Y = -1*self.d*math.sin(self.theta) + self.y
-        self.subPoint2X = self.d*math.cos(self.theta) + self.x
-        self.subPoint2Y = self.d*math.sin(self.theta) + self.y
-
-    def updateSubPoints(self):
-        self.subPoint1X = -1*self.d*math.cos(self.theta) + self.x
-        self.subPoint1Y = -1*self.d*math.sin(self.theta) + self.y
-        self.subPoint2X = self.d*math.cos(self.theta) + self.x
-        self.subPoint2Y = self.d*math.sin(self.theta) + self.y
-
-class CubicBSpline:
-    def __init__(self, points, numberOfPoints, startingAngle):
+    def returnPath(self):
+        return self.generatedPath
+    
+    def generatePath(self, points, numberOfPoints):
         self.points = points
-        self.interpolatedList = []
+        interpolatedList = []
         self.pointIndex = 0
         self.speedThreshold = 1
         self.targetAngle = 0
-        self.startAngle = startingAngle
+        self.startAngle = 0
+        self.index = 0
         for i in range(0,numberOfPoints):
-            x, y = self.getPathPosition(i*(len(self.points)-1)/numberOfPoints)
-            point = {}
-            self.interpolatedList.append(point)
-        return(self.interpolatedList)
-
+            interpolatedList.append(self.getPathPosition(i*(len(self.points)-1)/numberOfPoints))
+        interpolatedList[numberOfPoints - 1]["stop"] = True
+        return interpolatedList
+    
     def getPathPosition(self, t):
         point = {
             "x": 0,
@@ -115,17 +86,18 @@ class CubicBSpline:
             "speed": 0,
             "heading": 0,
             "stop": False,
-            "actions": {}
+            "actions": {},
+            "index": self.index
         }
+        self.index += 1
         if t > (len(self.points) - 1):
             return(None)
         if t > self.pointIndex:
-            self.speedThreshold = self.points[self.pointIndex]["speed"]
-            point["stop"] = self.points[self.pointIndex]["stop"]
-            point["actions"] = self.points[self.pointIndex]["actions"]
-            if t > 1:
-                self.startAngle = self.points[self.pointIndex - 1]["heading"]
-            self.targetAngle = self.points[self.pointIndex]["heading"]
+            self.speedThreshold = self.points[self.pointIndex].speed
+            point["stop"] = self.points[self.pointIndex].stop
+            point["actions"] = self.points[self.pointIndex].actions
+            self.startAngle = self.points[self.pointIndex].heading
+            self.targetAngle = self.points[self.pointIndex + 1].heading # Does not cause index out of range errors
             self.pointIndex += 1
         startingPoint = int(t)
 
@@ -157,3 +129,78 @@ class CubicBSpline:
         point["speed"] = self.speedThreshold
         point["heading"] = heading
         return point
+    
+    def loadPath(self, pathName):
+        folderPath = os.path.dirname(os.path.abspath(__file__))
+        filePath = os.path.join(folderPath, f"paths/{pathName}.json")
+        with open (filePath, "r") as f1:
+            f2 = json.load(f1)
+        return f2
+    
+    def writePath(self, path, pathName):
+        ''' Only meant for code testing purposes '''
+        folderPath = os.path.dirname(os.path.abspath(__file__))
+        filePath = os.path.join(folderPath, f"paths/{pathName}.json")
+        with open (filePath, "w") as f1:
+            f1.write(json.dumps(path))
+    
+    def getAngle(self):
+        angle = self.navx.getAngle()
+        angle %= 360
+        if angle < -180:
+            angle += 360
+        elif angle > 180:
+            angle -= 360
+        if angle < -90:
+            angle += 270
+        else:
+            angle -= 90
+        return(angle)
+    
+    def convertToXY(self, xDistance, yDistance, speed):
+        hypotenuse = math.hypot(xDistance, yDistance)
+        ratioX = xDistance/hypotenuse
+        ratioY = yDistance/hypotenuse
+        x = ratioX*speed
+        y = ratioY*speed
+        return(x, y)
+    
+    def getFieldPosition(self):
+        ''' Navx is going to be stupid and either not return the values i want or
+        is going to have the values be at the wrong starting angle'''
+        x = (self.navx.getDisplacementX() * 39.37008) + self.xOffset
+        y = (self.navx.getDisplacementY() * 39.37008) + self.yOffset
+        return x, y
+    
+    def passedTargetCheck(self, currentX, currentY, nextX, nextY):
+        pass
+    
+    
+    def periodic(self):
+        pass
+        
+class ControlPoint:
+    def __init__(self, x, y, theta, d, speed, heading, stop, actions):
+        self.x = x
+        self.y = y
+        self.theta = theta
+        self.d = d
+        self.speed = speed
+        self.heading = heading
+        self.stop = stop
+        self.actions = actions
+
+        self.subPoint1X = -1*self.d*math.cos(self.theta) + self.x
+        self.subPoint1Y = -1*self.d*math.sin(self.theta) + self.y
+        self.subPoint2X = self.d*math.cos(self.theta) + self.x
+        self.subPoint2Y = self.d*math.sin(self.theta) + self.y
+
+    def updateSubPoints(self):
+        self.subPoint1X = -1*self.d*math.cos(self.theta) + self.x
+        self.subPoint1Y = -1*self.d*math.sin(self.theta) + self.y
+        self.subPoint2X = self.d*math.cos(self.theta) + self.x
+        self.subPoint2Y = self.d*math.sin(self.theta) + self.y
+
+auto = Autonomous(path)
+path = auto.returnPath()
+auto.writePath(path, "test")
