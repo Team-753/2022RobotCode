@@ -1,5 +1,4 @@
 # All imports at the top of the file, including the other files we made in the repository.
-from hal import I2CPort
 import wpilib
 import navx
 import driveTrain
