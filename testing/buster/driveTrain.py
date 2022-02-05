@@ -5,7 +5,6 @@ import json
 import os
 import wpilib
 import wpimath.controller
-# TODO: Figure out angle conversion stuff bc it still might be in unit circle -180->180, and also find an actual talonFX brake function
 
 class driveTrain:
     def __init__(self, config: dict):
@@ -31,7 +30,7 @@ class driveTrain:
         newY = x*math.cos(angle) + y*math.sin(angle)
         return(newX, newY)
 
-    def move(self, joystickX: float, joystickY: float, joystickRotation: float, angle: float, autonomous: bool):
+    def move(self, joystickX: float, joystickY: float, joystickRotation: float, angle: float):
         '''
         This method takes the joystick inputs from the driverStation class. 
         First checking to see if it is field oriented and compensating for the navx angle if it is.
@@ -39,10 +38,6 @@ class driveTrain:
         '''
         
         #The joysticks y axis is inverted for some reason
-        if not autonomous:
-            joystickY = -joystickY
-        
-        
         if self.fieldOrient:
             angle %= 360
             if angle < -180:

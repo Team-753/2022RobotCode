@@ -61,25 +61,29 @@ config = {
 class MyRobot(wpilib.TimedRobot):
 	def robotInit(self):
 			self.driveTrain = driveTrain.driveTrain(config)
-			self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=120)
-			self.camera = wpilib.CameraServer()
-			self.camera.launch()
+			self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=100)
+			#self.camera = wpilib.CameraServer()
+			# self.camera.launch()
 
 			#self.piston = wpilib.DoubleSolenoid(reverseChannel=config["PCM"]["pistonForward_ID"], forwardChannel=config["PCM"]["pistonReverse_ID"], moduleNumber=config["PCM"]["PCM_ID"])
 
 
 	def autonomousInit(self):
-		self.navx.reset()
+		pass
+		'''self.navx.reset()
 		self.navx.resetDisplacement()
 		autoPlanName = "default"
 		self.autonomousController = Autonomous(autoPlanName)
-		self.navx.setAngleAdjustment(self.autonomousController.initialAngle)
+		self.navx.setAngleAdjustment(self.autonomousController.initialAngle)'''
 	def autonomousPeriodic(self):
+		pass
+		'''
 		x, y, z, auxiliary = self.autonomousController.periodic(self.navx.getDisplacementX() * 39.37008, self.navx.getDisplacementY() * 39.37008) # need to eventually add support for auxiliary systems
 		if x != 0 or y != 0 or z != 0:
 				self.driveTrain.manualMove(x, y, z, -1*self.navx.getAngle() + 90)
 		else:
 				self.driveTrain.stationary()
+		'''
 	def teleopInit(self):
 		self.driverInput = wpilib.Joystick(0)
 		self.enabledToZero = False
@@ -87,15 +91,15 @@ class MyRobot(wpilib.TimedRobot):
 		self.navx.setAngleAdjustment(30)
 		self.navx.updateDisplacement(3, -2, 100, False)
 	def diagnostics(self):
-		wpilib.SmartDashboard.putNumber("navx Angle:", self.navx.getAngle())
+		'''wpilib.SmartDashboard.putNumber("navx Angle:", self.navx.getAngle())
 		wpilib.SmartDashboard.putNumber("navx X Displacement:", self.navx.getDisplacementX())
 		wpilib.SmartDashboard.putNumber("navx Y Displacement:", self.navx.getDisplacementY())
-		wpilib.SmartDashboard.putNumber("navx Z Displacement:", self.navx.getDisplacementZ())
+		wpilib.SmartDashboard.putNumber("navx Z Displacement:", self.navx.getDisplacementZ())'''
 	def teleopPeriodic(self):
 		switches = self.checkSwitches()
 		switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones([switches["driverX"], switches["driverY"], switches["driverZ"]])
 		if switches["driverX"] != 0 or switches["driverY"] != 0 or switches["driverZ"] != 0:
-				self.driveTrain.manualMove(switches["driverX"], switches["driverY"], switches["driverZ"], switches["navxAngle"])
+				self.driveTrain.move(switches["driverX"], switches["driverY"], switches["driverZ"], switches["navxAngle"])
 		else:
 				self.driveTrain.stationary()
 		self.diagnostics()
