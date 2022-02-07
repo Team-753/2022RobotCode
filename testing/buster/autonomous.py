@@ -1,8 +1,6 @@
 import json
 import math
 import os
-
-import navx
 import wpilib
 import wpimath.controller
 
@@ -49,20 +47,42 @@ path = {
 
 class Autonomous:
     def __init__(self, autonomousPathName, nvxObj):
-        self.navx = navx.AHRS() #nvxObj
-        unParsedPath = autonomousPathName #unParsedPath = self.loadPath(autonomousPathName)
-        # self.initialAngle = unParsedPath["initialization"]["angle"]
+        self.navx = nvxObj
+        unParsedPath = self.loadPath(autonomousPathName)
         self.navx.setAngleAdjustment(unParsedPath["initialization"]["angle"])
         self.xOffset = unParsedPath["initialization"]["xOffset"]
         self.yOffset = unParsedPath["initialization"]["yOffset"]
         points = []
         for point in unParsedPath["controlPoints"]:
             points.append(ControlPoint(point["x"], point["y"], point["theta"], point["d"], point["speed"], point["heading"], point["stop"], point["actions"]))
-        self.generatedPath = self.generatePath(points, unParsedPath["initialization"]["pathLength"])
-        self.headingController = wpimath.controller.PIDController(0.005, 0.0025, 0) # needs some testing
+        self.generatedPath = self.generatePath(points, int(unParsedPath["initialization"]["pathLength"]))
+        self.headingController = wpilib.controller.PIDController(0.005, 0.0025, 0) # needs some testing
         self.headingController.enableContinuousInput(-180, 180)
-        self.speedController = wpimath.controller.PIDController(0.1, 0.05, 0) # god this needs sooo much testing
-        
+        self.speedController = wpilib.controller.PIDController(0.1, 0.05, 0) # god this needs sooo much testing
+        self.pathPosition = 1
+        for generatedPoint, idx in enumerate(self.generatedPath):
+            if idx == len(self.generatedPath):
+                break
+            if generatedPoint["stop"]:
+                endPoint = idx
+        self.calculateRemainder(0, endPoint)
+        self.Timer = wpilib.Timer()
+    
+    def calculateRemainder(self, startPoint, endPoint):
+        self.pathRemainder = 0
+        self.previousRemainder = math.hypot(abs(self.generatedPath[startPoint + 1]["x"] - self.generatedPath[startPoint]["x"]), abs(self.generatedPath[startPoint + 1]["y"] - self.generatedPath[startPoint]["y"]))
+        while startPoint < endPoint:
+            generatedPoint = self.generatedPath[startPoint]
+            firstX = generatedPoint["x"]
+            firstY = generatedPoint["y"]
+            secondX = self.generatedPath[startPoint + 1]["x"]
+            secondY = self.generatedPath[startPoint + 1]["y"]
+            differenceX = secondX - firstX
+            differenceY = secondY - firstY
+            self.pathRemainder += math.hypot(differenceX, differenceY)
+            startPoint += 1
+            
+    
     def returnPath(self):
         return self.generatedPath
     
@@ -97,7 +117,7 @@ class Autonomous:
             point["stop"] = self.points[self.pointIndex].stop
             point["actions"] = self.points[self.pointIndex].actions
             self.startAngle = self.points[self.pointIndex].heading
-            self.targetAngle = self.points[self.pointIndex + 1].heading # Does not cause index out of range errors
+            self.targetAngle = self.points[self.pointIndex + 1].heading
             self.pointIndex += 1
         startingPoint = int(t)
 
@@ -144,41 +164,43 @@ class Autonomous:
         with open (filePath, "w") as f1:
             f1.write(json.dumps(path))
     
-    def getAngle(self):
-        angle = self.navx.getAngle()
-        angle %= 360
-        if angle < -180:
-            angle += 360
-        elif angle > 180:
-            angle -= 360
-        if angle < -90:
-            angle += 270
-        else:
-            angle -= 90
-        return(angle)
-    
     def convertToXY(self, xDistance, yDistance, speed):
         hypotenuse = math.hypot(xDistance, yDistance)
         ratioX = xDistance/hypotenuse
         ratioY = yDistance/hypotenuse
         x = ratioX*speed
         y = ratioY*speed
-        return(x, y)
-    
-    def getFieldPosition(self):
-        ''' Navx is going to be stupid and either not return the values i want or
-        is going to have the values be at the wrong starting angle'''
-        x = (self.navx.getDisplacementX() * 39.37008) + self.xOffset
-        y = (self.navx.getDisplacementY() * 39.37008) + self.yOffset
-        return x, y
+        return (x, y)
     
     def passedTargetCheck(self, currentX, currentY, nextX, nextY):
-        pass
+        passed = False
+        xDifference = 0
+        yDifference = 0
+        return passed, xDifference, yDifference
     
-    
-    def periodic(self):
-        pass
-        
+    def periodic(self, pose):
+        xPos = (pose[0] * 39.37008) + self.xOffset
+        yPos = (pose[1] * 39.37008) + self.yOffset
+        rot = (pose[2] * 39.37008)
+        actions = []
+        targetPoint = self.generatedPath[self.pathPosition]
+        if self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])[0]:
+            self.pathPosition += 1
+            targetPoint = self.generatedPath[self.pathPosition]
+        if self.pathPosition == len(self.generatedPath):
+            return 0, 0, 0, ["end"]
+        else:
+            if targetPoint["stop"]:
+                timeToWait = targetPoint["actions"]["waitTime"]
+            passed, xDifference, yDifference = self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])
+            takeAway = self.previousRemainder - math.hypot(abs(xDifference), abs(yDifference))
+            self.previousRemainder = math.hypot(abs(xDifference), abs(yDifference))
+            self.pathRemainder -= takeAway
+            robotSpeed = self.speedController.calculate(self.pathRemainder, 0)
+            z = self.headingController.calculate(rot, targetPoint["heading"])
+            x, y = self.convertToXY(xDifference, yDifference, robotSpeed * targetPoint["speed"])
+            return x, y, z, actions
+                    
 class ControlPoint:
     def __init__(self, x, y, theta, d, speed, heading, stop, actions):
         self.x = x
@@ -200,7 +222,3 @@ class ControlPoint:
         self.subPoint1Y = -1*self.d*math.sin(self.theta) + self.y
         self.subPoint2X = self.d*math.cos(self.theta) + self.x
         self.subPoint2Y = self.d*math.sin(self.theta) + self.y
-
-auto = Autonomous(path)
-path = auto.returnPath()
-auto.writePath(path, "test")

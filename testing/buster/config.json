@@ -1,0 +1,52 @@
+{
+  "PCM": {
+    "pistonForward_ID": 1,
+    "pistonReverse_ID": 0,
+    "PCM_ID": 61
+  },
+  "SwerveModules": {
+    "frontLeft": {
+      "motor_ID_1": 1,
+      "motor_ID_2": 3,
+      "encoder_ID": 2,
+      "encoderOffset": 16.787109
+    },
+    "frontRight": {
+      "motor_ID_1": 4,
+      "motor_ID_2": 6,
+      "encoder_ID": 5,
+      "encoderOffset": -109.511719
+    },
+    "rearLeft": {
+      "motor_ID_1": 7,
+      "motor_ID_2": 9,
+      "encoder_ID": 8,
+      "encoderOffset": -103.271484
+    },
+    "rearRight": {
+      "motor_ID_1": 10,
+      "motor_ID_2": 12,
+      "encoder_ID": 11,
+      "encoderOffset": -124.101563
+    }
+  },
+  "RobotDimensions": {
+    "trackWidth": 26.5,
+    "wheelBase": 26.5,
+    "wheelDiameter": 4
+  },
+  "RobotDefaultSettings": {
+    "fieldOrient": true,
+    "easterEgg": "e"
+  },
+  "driverStation": {
+    "joystickDeadZones": {
+      "xDeadZone": 0.1,
+      "yDeadZone": 0.1,
+      "zDeadZone": 0.15
+    }
+  },
+  "RobotContstraints": {
+    "MaxSpeed": 3.5
+  }
+}
