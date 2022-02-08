@@ -14,7 +14,7 @@
       "speed": 0.25,
       "heading": 0,
       "stop": false,
-      "actions": {}
+      "actions": []
     },
     {
       "x": 48,
@@ -24,7 +24,7 @@
       "speed": 0.25,
       "heading": 45,
       "stop": false,
-      "actions": {}
+      "actions": []
     },
     {
       "x": 0,
@@ -34,7 +34,7 @@
       "speed": 0.25,
       "heading": 180,
       "stop": true,
-      "actions": {}
+      "actions": []
     }
   ]
 }

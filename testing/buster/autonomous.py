@@ -66,7 +66,7 @@ class Autonomous:
             "speed": 0,
             "heading": 0,
             "stop": False,
-            "actions": {},
+            "actions": [],
             "index": self.index
         }
         self.index += 1
