@@ -26,8 +26,14 @@
     }
   },
   "Climber": {
-    "leftShoulder_ID": 15,
-    "rightShoulder_ID": 16,
+    "leftShoulder": {
+      "ID": 15,
+      "Name": "leftShoulder"
+    },
+    "rightShoulder": {
+      "ID": 16,
+      "Name": "rightShoulder"
+    },
     "leftWinch": {
       "ID": 13,
       "Name": "leftWinch"
