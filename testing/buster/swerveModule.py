@@ -3,7 +3,7 @@ import wpimath.kinematics
 import math
 import os
 import json
-import wpilib.controller
+import wpimath.controller
 import wpimath.trajectory
 
 class swerveModule:
@@ -49,7 +49,7 @@ class swerveModule:
         self.driveMotor.config_kD(0, kDDrive, 0)
         self.driveMotor.config_kF(0, kFDrive, 0)
         
-        self.turnController = wpilib.controller.ProfiledPIDControllerRadians(kPTurn, kITurn, kDTurn, 
+        self.turnController = wpimath.controller.ProfiledPIDControllerRadians(kPTurn, kITurn, kDTurn, 
         wpimath.trajectory.TrapezoidProfileRadians.Constraints(maxAngularVelocity, maxAngularAcceleration))
         self.turnController.enableContinuousInput(-180, 180)
         self.turnController.setTolerance(0.005) # change this number to change accuracy and jitter of motor
@@ -170,4 +170,3 @@ class swerveModule:
         self.driveMotor.set(ctre.TalonFXControlMode.Velocity, velocity)
 		#I'm not sure how to scale these units so I'll leave (careful) testing of that to you. Or you could use the direct position PID
         self.turnMotor.set(ctre.TalonFXControlMode.Current, turnOutput)
-        

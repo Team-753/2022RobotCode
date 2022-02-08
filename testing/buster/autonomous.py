@@ -3,62 +3,26 @@ import math
 import os
 import wpilib
 import wpimath.controller
-
-path = {
-    "initialization": {
-        "angle": -45,
-        "xOffset": -72,
-        "yOffset": -60,
-        "pathLength": 120,
-    },
-    "controlPoints": [
-        {
-        "x": -72,
-        "y": -60,
-        "theta": math.pi/2,
-        "d": 0,
-        "speed": 0.75,
-        "heading": 0,
-        "stop": False,
-        "actions": {}
-        },
-        {
-        "x": 0,
-        "y": 0,
-        "theta": math.pi,
-        "d": 0,
-        "speed": 1,
-        "heading": 45,
-        "stop": False,
-        "actions": {}
-        },
-        {
-        "x": 50,
-        "y": 50,
-        "theta": 0,
-        "d": 0,
-        "speed": 1,
-        "heading": 180,
-        "stop": True,
-        "actions": {}
-        },
-    ]
-}
+import wpimath.trajectory
 
 class Autonomous:
     def __init__(self, autonomousPathName, nvxObj):
         self.navx = nvxObj
+        self.waiting = 0
         unParsedPath = self.loadPath(autonomousPathName)
         self.navx.setAngleAdjustment(unParsedPath["initialization"]["angle"])
         self.xOffset = unParsedPath["initialization"]["xOffset"]
         self.yOffset = unParsedPath["initialization"]["yOffset"]
         points = []
+        maxAngularVelocity = math.pi / 2 # change to degrees
+        maxAngularAcceleration = math.pi # change to degrees
         for point in unParsedPath["controlPoints"]:
             points.append(ControlPoint(point["x"], point["y"], point["theta"], point["d"], point["speed"], point["heading"], point["stop"], point["actions"]))
         self.generatedPath = self.generatePath(points, int(unParsedPath["initialization"]["pathLength"]))
-        self.headingController = wpilib.controller.PIDController(0.005, 0.0025, 0) # needs some testing
+        self.headingController = wpimath.controller.ProfiledPIDController(0.005, 0.0025, 0, 
+        wpimath.trajectory.TrapezoidProfileRadians.Constraints(maxAngularVelocity, maxAngularAcceleration)) # needs some testing
         self.headingController.enableContinuousInput(-180, 180)
-        self.speedController = wpilib.controller.PIDController(0.1, 0.05, 0) # god this needs sooo much testing
+        self.speedController = wpimath.controller.PIDController(0.1, 0.05, 0) # god this needs sooo much testing
         self.pathPosition = 1
         for generatedPoint, idx in enumerate(self.generatedPath):
             if idx == len(self.generatedPath):
@@ -81,10 +45,6 @@ class Autonomous:
             differenceY = secondY - firstY
             self.pathRemainder += math.hypot(differenceX, differenceY)
             startPoint += 1
-            
-    
-    def returnPath(self):
-        return self.generatedPath
     
     def generatePath(self, points, numberOfPoints):
         self.points = points
@@ -166,40 +126,68 @@ class Autonomous:
     
     def convertToXY(self, xDistance, yDistance, speed):
         hypotenuse = math.hypot(xDistance, yDistance)
-        ratioX = xDistance/hypotenuse
-        ratioY = yDistance/hypotenuse
+        ratioX = xDistance / hypotenuse
+        ratioY = yDistance / hypotenuse
         x = ratioX*speed
         y = ratioY*speed
         return (x, y)
     
     def passedTargetCheck(self, currentX, currentY, nextX, nextY):
-        passed = False
-        xDifference = 0
-        yDifference = 0
+        checkOne = False
+        checkTwo = False
+        xDifference = nextX - currentX
+        yDifference = nextY - currentY
+        if xDifference < 0 and currentX < nextX:
+            checkOne = True
+        elif xDifference > 0 and currentX > nextX:
+            checkOne = True
+        if yDifference < 0 and currentY < nextY:
+            checkTwo = True
+        elif yDifference > 0 and currentY > nextY:
+            checkTwo = True
+        if checkOne and checkTwo:
+            passed = True
+        else:
+            passed = False
         return passed, xDifference, yDifference
     
     def periodic(self, pose):
+        ''' Call this function every autonomous runtime loop '''
         xPos = (pose[0] * 39.37008) + self.xOffset
         yPos = (pose[1] * 39.37008) + self.yOffset
         rot = (pose[2] * 39.37008)
-        actions = []
         targetPoint = self.generatedPath[self.pathPosition]
-        if self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])[0]:
-            self.pathPosition += 1
-            targetPoint = self.generatedPath[self.pathPosition]
-        if self.pathPosition == len(self.generatedPath):
-            return 0, 0, 0, ["end"]
+        if self.waiting == 0:
+            while self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])[0]:
+                if targetPoint["stop"]:
+                    self.waiting = float(targetPoint["actions"]["waitTime"])
+                    self.Timer.start()
+                    return 0, 0, 0, targetPoint["actions"]
+                if self.pathPosition == len(self.generatedPath):
+                    return 0, 0, 0, ["end"]
+                self.pathPosition += 1
+                targetPoint = self.generatedPath[self.pathPosition]
+            else:
+                if targetPoint["stop"]:
+                    self.waiting = float(targetPoint["actions"]["waitTime"])
+                    self.Timer.start()
+                    return 0, 0, 0, targetPoint["actions"]
+                actions = targetPoint["actions"]
+                passed, xDifference, yDifference = self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])
+                takeAway = self.previousRemainder - math.hypot(abs(xDifference), abs(yDifference))
+                self.previousRemainder = math.hypot(abs(xDifference), abs(yDifference))
+                self.pathRemainder -= takeAway
+                robotSpeed = self.speedController.calculate(self.pathRemainder, 0)
+                z = self.headingController.calculate(rot, targetPoint["heading"])
+                x, y = self.convertToXY(xDifference, yDifference, robotSpeed * targetPoint["speed"])
+                return x, y, z, actions
         else:
-            if targetPoint["stop"]:
-                timeToWait = targetPoint["actions"]["waitTime"]
-            passed, xDifference, yDifference = self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])
-            takeAway = self.previousRemainder - math.hypot(abs(xDifference), abs(yDifference))
-            self.previousRemainder = math.hypot(abs(xDifference), abs(yDifference))
-            self.pathRemainder -= takeAway
-            robotSpeed = self.speedController.calculate(self.pathRemainder, 0)
-            z = self.headingController.calculate(rot, targetPoint["heading"])
-            x, y = self.convertToXY(xDifference, yDifference, robotSpeed * targetPoint["speed"])
-            return x, y, z, actions
+            if self.Timer.hasElapsed(self.waiting):
+                self.waiting = 0
+                return 0, 0, 0, []
+            else:
+                return 0, 0, 0, []
+            
                     
 class ControlPoint:
     def __init__(self, x, y, theta, d, speed, heading, stop, actions):

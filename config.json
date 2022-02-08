@@ -35,15 +35,9 @@
     "leftHook_PCM_ID": 0,
     "rightHook_PCM_ID": 1
   },
-  "Intake": {
-
-  },
-  "Shooter": {
-
-  },
-  "Tower": {
-
-  },
+  "Intake": {},
+  "Shooter": {},
+  "Tower": {},
   "RobotDimensions": {
     "trackWidth": 36,
     "wheelBase": 48,

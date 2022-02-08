@@ -3,7 +3,6 @@ import json
 import os
 import ctre
 import wpilib
-import wpimath.controller
 import wpimath.kinematics
 import wpimath.geometry
 import navx # temp
@@ -47,7 +46,7 @@ class driveTrain:
         newY = x*math.cos(angle) + y*math.sin(angle)
         return(newX, newY)
 
-    def move(self, joystickX: float, joystickY: float, joystickRotation: float, angle: float):
+    def move(self, joystickX: float, joystickY: float, joystickRotation: float):
         ''' Sorry Ben but unless you want to do full custom inverse odometry this is what we are stuck with '''
         if self.fieldOrient:
             swerveModuleStates = self.kinematics.toSwerveModuleStates(wpimath.kinematics.ChassisSpeeds.fromFieldRelativeSpeeds(joystickX, joystickY, joystickRotation, self.getPoseRadians()))
