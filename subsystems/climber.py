@@ -38,18 +38,18 @@ class Shoulder:
         self.disabled = False
         self.name = name
         if self.name == "leftShoulder":
-            self.direction = -1
+            self.motor.setInverted(True)
         else:
-            self.direction = 1
+            self.motor.setInverted(False)
     
     def forward(self, speed):
-        self.motor.set(self.direction*speed)
+        self.motor.set(speed)
         self.disabled = False
     
     def backward(self, speed):
         self.checkEffort()
         if self.disabled == False:
-            self.motor.set(-1*self.direction*speed)
+            self.motor.set(-speed)
             wpilib.SmartDashboard.putBool(self.name + " stopped", False)
         else:
             self.motor.set(0)
@@ -76,18 +76,18 @@ class Winch:
         self.disabled = False
         self.name = name
         if self.name == "leftWinch":
-            self.direction = -1
+            self.motor.setInverted(True)
         else:
-            self.direction = 1
+            self.motor.setInverted(False)
 
     def release(self, speed):
-        self.motor.set(ctre.ControlMode.PercentOutput, self.direction*speed)
+        self.motor.set(ctre.ControlMode.PercentOutput, speed)
         self.disabled = False
 
     def retract(self, speed):
         self.checkEffort()
         if self.disabled == False:
-            self.motor.set(ctre.ControlMode.PercentOutput, -1*self.direction*speed)
+            self.motor.set(ctre.ControlMode.PercentOutput, -speed)
             wpilib.SmartDashboard.putBool(self.name + " stopped", False)
         else:
             self.motor.set(ctre.ControlMode.PercentOutput, 0)
