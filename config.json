@@ -26,12 +26,22 @@
     }
   },
   "Climber": {
-    "leftShoulder_ID": 15,
-    "rightShoulder_ID": 16,
-    "leftWinch_ID": 13,
-    "leftWinchLimitSwitch_DIO_ID": 0,
-    "rightWinch_ID": 14,
-    "rightWinchLimitSwitch_DIO_ID": 1,
+    "leftShoulder": {
+      "ID": 15,
+      "Name": "leftShoulder"
+    },
+    "rightShoulder": {
+      "ID": 16,
+      "Name": "rightShoulder"
+    },
+    "leftWinch": {
+      "ID": 13,
+      "Name": "leftWinch"
+    },
+    "rightWinch": {
+      "ID": 14,
+      "Name": "rightWinch"
+    },
     "leftHook_PCM_ID": 0,
     "rightHook_PCM_ID": 1
   },

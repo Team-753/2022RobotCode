@@ -5,12 +5,10 @@ import rev
 class Climber:
     def __init__(self, config = dict):
         self.config = config
-        self.leftShoulder = rev.CANSparkMax(self.config["Climber"]["leftShoulder_ID"], rev.MotorType.kBrushless)
-        self.leftShoulderEncoder = self.leftShoulder.getEncoder()
-        self.rightShoulder = rev.CANSparkMax(self.config["Climber"]["rightShoulder_ID"], rev.MotorType.kBrushless)
-        self.rightShoulderEncoder = self.rightShoulder.getEncoder()
-        self.leftWinch = Winch(self.config["Climber"]["leftWinch_ID"], self.config["Climber"]["leftWinchLimitSwitch_DIO_ID"])
-        self.rightWinch = Winch(self.config["Climber"]["rightWinch_ID"], self.config["Climber"]["rightWinchLimitSwitch_DIO_ID"])
+        self.leftShoulder = Shoulder(self.config["Climber"]["leftShoulder"]["ID"], self.config["Climber"]["leftShoulder"]["Name"])
+        self.rightShoulder = Shoulder(self.config["Climber"]["rightShoulder"]["ID"], self.config["Climber"]["rightShoulder"]["Name"])
+        self.leftWinch = Winch(self.config["Climber"]["leftWinch"]["ID"], self.config["Climber"]["leftWinch"]["Name"])
+        self.rightWinch = Winch(self.config["Climber"]["rightWinch"]["ID"], self.config["Climber"]["rightWinch"]["Name"])
         
         self.leftHook = wpilib.Solenoid(self.config["Climber"]["leftHook_PCM_ID"])
         self.rightHook = wpilib.Solenoid(self.config["Climber"]["rightHook_PCM_ID"])
@@ -30,12 +28,81 @@ class Climber:
     def disengageHooks(self):
         ''''''
 
+class Shoulder:
+    '''The forward and backward directions need to be tested.'''
+    def __init__(self, sparkID, name):
+        self.motor = rev.CANSparkMax(sparkID, rev.MotorType.kBrushless)
+        self.currentLimit = 35 # This amperage limit has not been tested
+        self.encoder = self.motor.getEncoder(counts_per_rev=2480)
+        self.position = self.encoder.getPosition() # This is in rotations
+        self.disabled = False
+        self.name = name
+        if self.name == "leftShoulder":
+            self.motor.setInverted(True)
+        else:
+            self.motor.setInverted(False)
+    
+    def forward(self, speed):
+        self.motor.set(speed)
+        self.disabled = False
+    
+    def backward(self, speed):
+        self.checkEffort()
+        if self.disabled == False:
+            self.motor.set(-speed)
+            wpilib.SmartDashboard.putBool(self.name + " stopped", False)
+        else:
+            self.motor.set(0)
+            self.motor.setIdleMode(rev.IdleMode.kBrake)
+            wpilib.SmartDashboard.putBool(self.name + " stopped" + True)
+    
+    def checkEffort(self):
+        current = self.motor.getOutputCurrent()
+        velocity = self.encoder.getVelocity()
+        wpilib.SmartDashboard.putNumber("Shoulder Encoder RPM", velocity)
+        if velocity < 2 and current > self.currentLimit:
+            self.disabled = True
+    
+
+
+
 class Winch:
-    ''' I want this as its own class as it will need to be constantly updating its own variables and taking actions such as:
-    - Current Draw
-    - How much of the winch is let out
-    - Asynchronously stopping the winch once its reached its limit or overcurrent'''
-    def __init__(self, falconID, limitSwitchID) -> None:
-        self.motor = ctre.TalonFX(falconID)
-        self.limitSwitch = wpilib.DigitalInput(limitSwitchID) # digital input measures a voltage
-        
+    '''The forward and backward directions need to be tested.'''
+    def __init__(self, talonID, name):
+        self.motor = ctre.TalonFX(talonID)
+        self.currentLimit = 35 # This amperage limit has not been tested
+        self.motor.setSelectedSensorPosition(0)
+        self.position = self.motor.getSelectedSensorPosition()
+        self.disabled = False
+        self.name = name
+        if self.name == "leftWinch":
+            self.motor.setInverted(True)
+        else:
+            self.motor.setInverted(False)
+
+    def release(self, speed):
+        self.motor.set(ctre.ControlMode.PercentOutput, speed)
+        self.disabled = False
+
+    def retract(self, speed):
+        self.checkEffort()
+        if self.disabled == False:
+            self.motor.set(ctre.ControlMode.PercentOutput, -speed)
+            wpilib.SmartDashboard.putBool(self.name + " stopped", False)
+        else:
+            self.motor.set(ctre.ControlMode.PercentOutput, 0)
+            self.motor.setNeutralMode(ctre.NeutralMode.Brake)
+            wpilib.SmartDashboard.putBool(self.name + " stopped", True)
+
+    def checkEffort(self):
+        '''This checks if the winch is moving and how much current it is drawing.
+        If it isn't moving and it is drawing too much current, the winch will be 'disabled'. '''
+        current = self.motor.getStatorCurrent()
+        velocity = self.motor.getSelectedSensorVelocity()
+        wpilib.SmartDashboard.putNumber("Winch Sensor Velocity", velocity)
+        if velocity < 1 and current > self.currentLimit:
+            self.disabled = True
+    
+    def getPosition(self):
+        self.position = self.motor.getSelectedSensorPosition()
+        return(self.position)
