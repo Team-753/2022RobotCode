@@ -1,45 +1,30 @@
-import math
-import json
-import os
-import ctre
-import wpilib
-import wpimath.kinematics
-import wpimath.geometry
-import navx # temp
 from swerveModule import swerveModule
+from odometry import Odometry
+import math
 
 class driveTrain:
-    def __init__(self, config: dict, navxOBJ):
-        self.navx = navx.AHRS() # self.navx = navxOBJ
+    def __init__(self, config: dict, navxOBJ: object):
+        self.navx = navxOBJ
         self.swerveModules = {
             "frontLeft": None,
             "frontRight": None,
             "rearLeft": None,
             "rearRight": None
         }
-        
-        inchesToMeters = 0.0254
-        frontLeftLocation = wpimath.geometry.Translation2d(self.config["RobotDimensions"]["trackWidth"] * inchesToMeters / 2, self.config["RobotDimensions"]["wheelBase"] * inchesToMeters / 2)
-        frontRightLocation = wpimath.geometry.Translation2d(self.config["RobotDimensions"]["trackWidth"] * inchesToMeters / 2, -1*self.config["RobotDimensions"]["wheelBase"] * inchesToMeters / 2)
-        rearLeftLocation = wpimath.geometry.Translation2d(-1*self.config["RobotDimensions"]["trackWidth"] * inchesToMeters / 2, self.config["RobotDimensions"]["wheelBase"] * inchesToMeters / 2)
-        rearRightLocation = wpimath.geometry.Translation2d(-1*self.config["RobotDimensions"]["trackWidth"] * inchesToMeters / 2, -1*self.config["RobotDimensions"]["wheelBase"] * inchesToMeters / 2)
-  
         self.config = config
-        self.trackWidth = self.config["RobotDimensions"]["trackWidth"]
-        self.wheelBase = self.config["RobotDimensions"]["wheelBase"]
         self.fieldOrient = bool(self.config["RobotDefaultSettings"]["fieldOrient"])
-        self.maxSpeed = self.config["RobotConstraints"]["MaxSpeed"]
         # LConfig = self.config["SwerveModules"]["frontLeft"]
         for i in range(4):
             moduleName = list(self.config["SwerveModules"])[i]
             swerveConfig = self.config["SwerveModules"][moduleName]
             self.swerveModules[moduleName] = swerveModule(swerveConfig["motor_ID_1"], swerveConfig["motor_ID_2"], swerveConfig["encoder_ID"], swerveConfig["encoderOffset"], moduleName)
-            
-        self.kinematics = wpimath.kinematics.SwerveDrive4Kinematics(frontLeftLocation, frontRightLocation, rearLeftLocation, rearRightLocation)
-        self.odometry = wpimath.kinematics.SwerveDrive4Odometry(self.kinematics, self.poseRadians())
+            self.swerveModules[moduleName].initMotorEncoder()
+        self.odometry = Odometry(self.swerveModules, self.navx, self.config)
 
-    def poseRadians(self):
-        return wpimath.geometry.Rotation2d((-1*self.navx.getAngle()+90)*(math.pi / 180))
+        self.fLRotationVectorAngle = self.odometry.fLRotationVectorAngle
+        self.fRRotationVectorAngle = self.odometry.fRRotationVectorAngle
+        self.rLRotationVectorAngle = self.odometry.rLRotationVectorAngle
+        self.rRRotationVectorAngle = self.odometry.rRRotationVectorAngle
 
     def rotateCartesianPlane(self, angle: float, x: float, y: float):
         newX = x*math.sin(angle) - y*math.cos(angle)
@@ -47,17 +32,56 @@ class driveTrain:
         return(newX, newY)
 
     def move(self, joystickX: float, joystickY: float, joystickRotation: float):
-        ''' Sorry Ben but unless you want to do full custom inverse odometry this is what we are stuck with '''
+        '''
+        This method takes the joystick inputs from the driverStation class. 
+        First checking to see if it is field oriented and compensating for the navx angle if it is.
+        NOTE: The final angle may be in unit circle degrees and not in normal oriented degrees this is most likely the problem if the drivetrain has a 90 degree offset
+        '''
+        
+        #The joysticks y axis is inverted for some reason
+        angle = self.odometry.getRobotPose()[2]
         if self.fieldOrient:
-            swerveModuleStates = self.kinematics.toSwerveModuleStates(wpimath.kinematics.ChassisSpeeds.fromFieldRelativeSpeeds(joystickX, joystickY, joystickRotation, self.getPoseRadians()))
+            angle %= 360
+            if angle < -180:
+                angle += 360
+            elif angle > 180:
+                angle -= 360
+            angleRadians = angle*math.pi/180
+            translationVector = self.rotateCartesianPlane(angleRadians, joystickX, joystickY)
         else:
-            swerveModuleStates = self.kinematics.toSwerveModuleStates(wpimath.kinematics.ChassisSpeeds(joystickX, joystickY, joystickRotation))
-            
-        swerveModuleStates = wpimath.kinematics.SwerveDrive4Kinematics.normalizeWheelSpeeds(swerveModuleStates, self.maxSpeed)
-        self.swerveModules["frontLeft"].setState(swerveModuleStates[0])
-        self.swerveModules["frontRight"].setState(swerveModuleStates[1])
-        self.swerveModules["rearLeft"].setState(swerveModuleStates[2])
-        self.swerveModules["rearRight"].setState(swerveModuleStates[3])
+            translationVector = (joystickX, joystickY)
+
+        fLRotationVector = (joystickRotation*math.cos(self.fLRotationVectorAngle), joystickRotation*math.sin(self.fLRotationVectorAngle))
+        fRRotationVector = (joystickRotation*math.cos(self.fRRotationVectorAngle), joystickRotation*math.sin(self.fRRotationVectorAngle))
+        rLRotationVector = (joystickRotation*math.cos(self.rLRotationVectorAngle), joystickRotation*math.sin(self.rLRotationVectorAngle))
+        rRRotationVector = (joystickRotation*math.cos(self.rRRotationVectorAngle), joystickRotation*math.sin(self.rRRotationVectorAngle))
+        
+        fLTranslationVector = (fLRotationVector[0] + translationVector[0], fLRotationVector[1] + translationVector[1])
+        fRTranslationVector = (fRRotationVector[0] + translationVector[0], fRRotationVector[1] + translationVector[1])
+        rLTranslationVector = (rLRotationVector[0] + translationVector[0], rLRotationVector[1] + translationVector[1])
+        rRTranslationVector = (rRRotationVector[0] + translationVector[0], rRRotationVector[1] + translationVector[1])
+        
+        fLAngle = math.atan2(fLTranslationVector[1], fLTranslationVector[0])*180/math.pi
+        fRAngle = math.atan2(fRTranslationVector[1], fRTranslationVector[0])*180/math.pi
+        rLAngle = math.atan2(rLTranslationVector[1], rLTranslationVector[0])*180/math.pi
+        rRAngle = math.atan2(rRTranslationVector[1], rRTranslationVector[0])*180/math.pi
+
+        fLSpeed = math.sqrt((fLTranslationVector[0]**2) + (fLTranslationVector[1]**2))
+        fRSpeed = math.sqrt((fRTranslationVector[0]**2) + (fRTranslationVector[1]**2))
+        rLSpeed = math.sqrt((rLTranslationVector[0]**2) + (rLTranslationVector[1]**2))
+        rRSpeed = math.sqrt((rRTranslationVector[0]**2) + (rRTranslationVector[1]**2))
+
+        maxSpeed = max(fLSpeed, fRSpeed, rLSpeed, rRSpeed)
+        if maxSpeed > 1:
+            fLSpeed /= maxSpeed
+            fRSpeed /= maxSpeed
+            rLSpeed /= maxSpeed
+            rRSpeed /= maxSpeed
+
+        self.swerveModules["frontLeft"].move(fLSpeed, fLAngle)
+        self.swerveModules["frontRight"].move(fRSpeed, fRAngle)
+        self.swerveModules["rearLeft"].move(rLSpeed, rLAngle)
+        self.swerveModules["rearRight"].move(rRSpeed, rRAngle)
 
     def reInitiateMotorEncoders(self):
         ''' Call this when actually re-zeroing the motor absolutes '''
@@ -87,30 +111,5 @@ class driveTrain:
         rearRightValues = self.swerveModules["rearRight"].returnValues()
         return frontLeftValues, frontRightValues, rearLeftValues, rearRightValues
     
-    def zeroAbsolutes(self):
-        ''' Sets the zero of the absolute canCoders - 
-        realistically this function should never have to be called'''
-        self.swerveModules["frontLeft"].zeroAbsolute()
-        self.swerveModules["frontRight"].zeroAbsolute()
-        self.swerveModules["rearLeft"].zeroAbsolute()
-        self.swerveModules["rearRight"].zeroAbsolute()
-        
-    def turnOnly(self, angle):
-        self.swerveModules["frontLeft"].move(0, angle)
-        self.swerveModules["frontRight"].move(0, angle)
-        self.swerveModules["rearLeft"].move(0, angle)
-        self.swerveModules["rearRight"].move(0, angle)
-        
-    def updateOdometry(self):
-        self.odometry.update(self.getPoseRadians(), self.frontLeft.getState(), self.frontRight.getState(), self.rearLeft.getState(), self.rearRight.getState())
-        
-    def rotateUnitCircle(self, angle: float):
-        if angle < -90:
-            angle += 270
-        else:
-            angle -= 90
-        return(angle)
-    
     def getFieldPosition(self):
-        pose = self.odometry.getPose()
-        return pose.X(), pose.Y(), self.rotateUnitCircle(math.degrees(pose.rotation())) # rotating may be un necessary
+        return self.odometry.getRobotPose()

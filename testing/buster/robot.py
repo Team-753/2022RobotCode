@@ -3,7 +3,6 @@ import wpilib
 import navx
 import driveTrain
 import autonomous
-import math
 import time
 import os
 import json
@@ -25,9 +24,9 @@ class MyRobot(wpilib.TimedRobot):
 		self.auto = autonomous.Autonomous("default", self.navx)
 
 	def autonomousPeriodic(self):
-		self.driveTrain.updateOdometry()
 		pose = self.driveTrain.getFieldPosition()
 		x, y, z, auxiliary = self.auto.periodic(pose)
+		print(x, y, z, auxiliary)
 		if x != 0 or y != 0 or z != 0:
 			self.driveTrain.move(x, y, z)
 		else:
@@ -36,6 +35,7 @@ class MyRobot(wpilib.TimedRobot):
 	def teleopInit(self):
 		self.driverInput = wpilib.Joystick(0)
 		self.navx.reset() # remove in production code
+		self.i = 0
 
 	def teleopPeriodic(self):
 		switches = self.checkSwitches()
@@ -43,7 +43,11 @@ class MyRobot(wpilib.TimedRobot):
 		if switches["driverX"] != 0 or switches["driverY"] != 0 or switches["driverZ"] != 0:
 			self.driveTrain.move(switches["driverX"], switches["driverY"], switches["driverZ"])
 		else:
+			self.driveTrain.move(0,0,0)
 			self.driveTrain.stationary()
+		if switches["calibrateDriveTrainEncoders"]:
+			self.driveTrain.zeroAbsolutes()
+
 	
 	def checkSwitches(self):
 		switchDict = {
@@ -56,6 +60,7 @@ class MyRobot(wpilib.TimedRobot):
 		switchDict["driverX"] = self.driverInput.getX()
 		switchDict["driverY"] = -self.driverInput.getY()
 		switchDict["driverZ"] = self.driverInput.getZ()
+		switchDict["calibrateDriveTrainEncoders"] = self.driverInput.getRawButtonReleased(11)
 		return switchDict
 	def evaluateDeadzones(self, inputs):
 		adjustedInputs = []

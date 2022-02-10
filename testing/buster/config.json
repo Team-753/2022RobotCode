@@ -46,7 +46,7 @@
       "zDeadZone": 0.15
     }
   },
-  "RobotContstraints": {
+  "RobotConstraints": {
     "MaxSpeed": 3.5
   }
 }

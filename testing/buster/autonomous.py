@@ -20,11 +20,11 @@ class Autonomous:
             points.append(ControlPoint(point["x"], point["y"], point["theta"], point["d"], point["speed"], point["heading"], point["stop"], point["actions"]))
         self.generatedPath = self.generatePath(points, int(unParsedPath["initialization"]["pathLength"]))
         self.headingController = wpimath.controller.ProfiledPIDController(0.005, 0.0025, 0, 
-        wpimath.trajectory.TrapezoidProfileRadians.Constraints(maxAngularVelocity, maxAngularAcceleration)) # needs some testing
+        wpimath.trajectory.TrapezoidProfile.Constraints(maxAngularVelocity, maxAngularAcceleration)) # needs some testing
         self.headingController.enableContinuousInput(-180, 180)
-        self.speedController = wpimath.controller.PIDController(0.1, 0.05, 0) # god this needs sooo much testing
+        self.speedController = wpimath.controller.PIDController(0.005, 0.002, 0) # god this needs sooo much testing
         self.pathPosition = 1
-        for generatedPoint, idx in enumerate(self.generatedPath):
+        for idx, generatedPoint in enumerate(self.generatedPath):
             if idx == len(self.generatedPath):
                 break
             if generatedPoint["stop"]:
@@ -128,8 +128,8 @@ class Autonomous:
         hypotenuse = math.hypot(xDistance, yDistance)
         ratioX = xDistance / hypotenuse
         ratioY = yDistance / hypotenuse
-        x = ratioX*speed
-        y = ratioY*speed
+        x = ratioX * speed
+        y = ratioY * speed
         return (x, y)
     
     def passedTargetCheck(self, currentX, currentY, nextX, nextY):
@@ -153,9 +153,10 @@ class Autonomous:
     
     def periodic(self, pose):
         ''' Call this function every autonomous runtime loop '''
-        xPos = (pose[0] * 39.37008) + self.xOffset
-        yPos = (pose[1] * 39.37008) + self.yOffset
-        rot = (pose[2] * 39.37008)
+        xPos = (pose[0] * 100) + self.xOffset
+        yPos = (pose[1] * 100) + self.yOffset
+        rot = (pose[2] * 100)
+        print(f"xPos: {xPos}, yPos: {yPos}, rot: {rot}")
         targetPoint = self.generatedPath[self.pathPosition]
         if self.waiting == 0:
             while self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])[0]:
@@ -177,8 +178,10 @@ class Autonomous:
                 takeAway = self.previousRemainder - math.hypot(abs(xDifference), abs(yDifference))
                 self.previousRemainder = math.hypot(abs(xDifference), abs(yDifference))
                 self.pathRemainder -= takeAway
-                robotSpeed = self.speedController.calculate(self.pathRemainder, 0)
+                self.speedController.setSetpoint(0)
+                robotSpeed = self.speedController.calculate(-self.pathRemainder)
                 z = self.headingController.calculate(rot, targetPoint["heading"])
+                print(f"xDifference: {xDifference}, yDifference: {yDifference}, Speed: {robotSpeed}, PathRemainder: {self.pathRemainder}")
                 x, y = self.convertToXY(xDifference, yDifference, robotSpeed * targetPoint["speed"])
                 return x, y, z, actions
         else:
