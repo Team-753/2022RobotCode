@@ -1,4 +1,3 @@
-from typing import Tuple
 import wpilib
 import json
 import os
@@ -61,38 +60,17 @@ class MyRobot(wpilib.TimedRobot):
         self.driveTrain.refreshValues()
     
     def testInit(self):
-        self.navx.reset()
+        self.persistant = False
         self.Timer.reset()
-        self.autonomousSwitchList = []
-        self.hasMoved = False
-        wpilib.SmartDashboard.putBoolean("Recording", True)
+        #self.functionDict
+        self.timeList = [0]
+        self.index = 0
     
     def testPeriodic(self):
-        ''' Intended to record a path for autonomous '''
-        switches = self.driverStation.checkSwitches()
-        switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones(switches["driverX"], switches["driverY"], switches["driverZ"])
-        if not self.hasMoved:
-            if switches["driverX"] != 0 or switches["driverY"] != 0 or switches["driverZ"] != 0:
-                self.hasMoved = True
-                self.Timer.start()
-
-        if self.hasMoved:
-            if self.Timer.get() > self.config["matchSettings"]["autonomousTime"]:
-                # autonomous recording period has ended
-                self.recording = False
-                self.Timer.stop()
-                self.stopAll()
-                wpilib.SmartDashboard.putBoolean("Recording", False)
-                dt_gmt = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-                with open(f"{os.path.dirname(os.path.abspath(__file__))}/paths/{dt_gmt}.json", 'w') as path:
-                    path.write(json.dump(self.autonomousSwitchList))
-
-            if self.recording:
-                switches["time"] = self.Timer.get()
-                self.autonomousSwitchList.append(switches) # adds 50x a second a little excessive maybe but needs to capture all inputs
-                self.switchActions(switches)
-
-        self.driveTrain.refreshValues()
+        if self.Timer.get() < self.timeList[len(self.timeList)]:
+            if self.Timer.hasPeriodPassed(self.timeList[self.index]):
+                self.index += 1
+                
             
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''

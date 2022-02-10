@@ -1,0 +1,40 @@
+{
+  "initialization": {
+    "angle": 0,
+    "xOffset": 0,
+    "yOffset": 0,
+    "pathLength": 120
+  },
+  "controlPoints": [
+    {
+      "x": 0,
+      "y": 0,
+      "theta": 1.57,
+      "d": 0,
+      "speed": 0.25,
+      "heading": 0,
+      "stop": false,
+      "actions": []
+    },
+    {
+      "x": 48,
+      "y": 48,
+      "theta": 3.14,
+      "d": 0,
+      "speed": 0.25,
+      "heading": 45,
+      "stop": false,
+      "actions": []
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "theta": 0,
+      "d": 0,
+      "speed": 0.25,
+      "heading": 180,
+      "stop": true,
+      "actions": []
+    }
+  ]
+}
