@@ -97,7 +97,7 @@ class swerveModule:
             oppositeAngle = motorPosition - 180
             if oppositeAngle < -180:
                 oppositeAngle += 360
-            return motorPosition
+            return oppositeAngle
     
     def getDriveMotorVelocity(self):
         ''' Returns the drive motor velocity in meters per second '''
@@ -119,15 +119,22 @@ class swerveModule:
         if motorPosition > 180:
             motorPosition -= 360
         normal = abs(motorPosition - moduleTarget)
+        if normal > 180:
+            normal -= 360
+            normal = abs(normal)
         oppositeAngle = motorPosition - 180
         if oppositeAngle < -180:
             oppositeAngle += 360
-        opposite = oppositeAngle + moduleTarget
-        if abs(opposite) < normal:
-            self.directionReversed = True
+        opposite = abs(motorPosition - moduleTarget - 180)
+        if opposite > 180:
+            opposite -= 360
+            opposite = abs(opposite)
+        # print(f"Opposite: {opposite}, Normal: {normal}, ModuleAngle: {motorPosition}")
+        if opposite < normal:
+            self.moduleReversed = True
             return oppositeAngle
         else:
-            self.directionReversed = False
+            self.moduleReversed = False
             return motorPosition
     
     def returnValues(self):
