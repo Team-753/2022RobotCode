@@ -16,12 +16,20 @@ class MyRobot(wpilib.TimedRobot):
 			self.config = json.load(f1)
 		self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=100)
 		self.driveTrain = driveTrain.driveTrain(self.config, self.navx)
+		self.useXboxController = True
 			# self.camera = wpilib.CameraServer()
 			# self.camera.launch()
 			# self.piston = wpilib.DoubleSolenoid(reverseChannel=self.config["PCM"]["pistonForward_ID"], forwardChannel=self.config["PCM"]["pistonReverse_ID"], moduleNumber=self.config["PCM"]["PCM_ID"])
 
 	def autonomousInit(self):
 		self.auto = autonomous.Autonomous("default", self.navx)
+  
+	def disabledPeriodic(self):
+		vals = self.driveTrain.refreshValues()
+		wpilib.SmartDashboard.putNumber("FLA", vals[0][1])
+		wpilib.SmartDashboard.putNumber("FRA", vals[1][1])
+		wpilib.SmartDashboard.putNumber("RLA", vals[2][1])
+		wpilib.SmartDashboard.putNumber("RRA", vals[3][1])
 
 	def autonomousPeriodic(self):
 		pose = self.driveTrain.getFieldPosition()
@@ -34,19 +42,25 @@ class MyRobot(wpilib.TimedRobot):
 
 	def teleopInit(self):
 		self.driverInput = wpilib.Joystick(0)
+		self.xboxInput = wpilib.XboxController(1)
 		self.navx.reset() # remove in production code
-		self.i = 0
+		self.driveTrain.resetOdometry()
 
 	def teleopPeriodic(self):
 		switches = self.checkSwitches()
-		switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones([switches["driverX"], switches["driverY"], switches["driverZ"]])
+		self.driveTrain.updateOdometry()
+		position = self.driveTrain.getFieldPosition()
+		wpilib.SmartDashboard.putNumber("X Position", position[0])
+		wpilib.SmartDashboard.putNumber("Y Position", position[1])
+		wpilib.SmartDashboard.putNumber("Z Rotation", position[2])
+		# switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones([switches["driverX"], switches["driverY"], switches["driverZ"]])
 		if switches["driverX"] != 0 or switches["driverY"] != 0 or switches["driverZ"] != 0:
 			self.driveTrain.move(switches["driverX"], switches["driverY"], switches["driverZ"])
 		else:
-			self.driveTrain.move(0,0,0)
+			#self.driveTrain.move(0,0,0)
 			self.driveTrain.stationary()
 		if switches["calibrateDriveTrainEncoders"]:
-			self.driveTrain.zeroAbsolutes()
+			self.driveTrain.reInitiateMotorEncoders()
 
 	
 	def checkSwitches(self):
@@ -57,10 +71,19 @@ class MyRobot(wpilib.TimedRobot):
 			"navxAngle": -1*self.navx.getAngle() + 90,
 			"calibrateDriveTrainEncoders": False
 		}
-		switchDict["driverX"] = self.driverInput.getX()
-		switchDict["driverY"] = -self.driverInput.getY()
-		switchDict["driverZ"] = self.driverInput.getZ()
+		x = self.driverInput.getX()
+		y = -self.driverInput.getY()
+		z = self.driverInput.getZ()
+		x, y, z = self.evaluateDeadzones((x, y, z))
+		if x == 0 and y == 0 and z == 0 and self.useXboxController:
+			x = self.xboxInput.getLeftX()
+			y = -self.xboxInput.getLeftY()
+			z = -self.xboxInput.getRightX()
+			print(f"x: {x}, y: {y}, z: {z}")
+			x, y, z = self.evaluateDeadzones((x, y, z))
+		switchDict["driverX"], switchDict["driverY"], switchDict["driverZ"] = x, y, z
 		switchDict["calibrateDriveTrainEncoders"] = self.driverInput.getRawButtonReleased(11)
+		#print(f)
 		return switchDict
 	def evaluateDeadzones(self, inputs):
 		adjustedInputs = []

@@ -1,9 +1,8 @@
-from numpy import number
-
-
-a = (1,1,1,1)
-b = (2,1,2,3)
-c = []
-for idx, number in enumerate(a):
-    c.append(number + b[idx])
-print(tuple(c))
+for i in range(-180,180):
+    angle = i
+    if angle < -90:
+        angle += 270
+    else:
+        angle -= 90
+    angle = -angle
+    print(str(i) + ", " + str(angle))

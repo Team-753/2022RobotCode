@@ -1,6 +1,7 @@
 from swerveModule import swerveModule
 from odometry import Odometry
 import math
+import wpilib
 
 class driveTrain:
     def __init__(self, config: dict, navxOBJ: object):
@@ -13,6 +14,8 @@ class driveTrain:
         }
         self.config = config
         self.fieldOrient = bool(self.config["RobotDefaultSettings"]["fieldOrient"])
+        self.wheelBase = self.config["RobotDimensions"]["wheelBase"]
+        self.trackWidth = self.config["RobotDimensions"]["trackWidth"]
         # LConfig = self.config["SwerveModules"]["frontLeft"]
         for i in range(4):
             moduleName = list(self.config["SwerveModules"])[i]
@@ -20,11 +23,17 @@ class driveTrain:
             self.swerveModules[moduleName] = swerveModule(swerveConfig["motor_ID_1"], swerveConfig["motor_ID_2"], swerveConfig["encoder_ID"], swerveConfig["encoderOffset"], moduleName)
             self.swerveModules[moduleName].initMotorEncoder()
         self.odometry = Odometry(self.swerveModules, self.navx, self.config)
-
+        
         self.fLRotationVectorAngle = self.odometry.fLRotationVectorAngle
         self.fRRotationVectorAngle = self.odometry.fRRotationVectorAngle
         self.rLRotationVectorAngle = self.odometry.rLRotationVectorAngle
         self.rRRotationVectorAngle = self.odometry.rRRotationVectorAngle
+        
+        wpilib.SmartDashboard.putNumber("fLTangent", self.fLRotationVectorAngle)
+        wpilib.SmartDashboard.putNumber("fRTangent", self.fRRotationVectorAngle)
+        wpilib.SmartDashboard.putNumber("rLTangent", self.rLRotationVectorAngle)
+        wpilib.SmartDashboard.putNumber("rRTangent", self.rRRotationVectorAngle)
+
 
     def rotateCartesianPlane(self, angle: float, x: float, y: float):
         newX = x*math.sin(angle) - y*math.cos(angle)
@@ -38,7 +47,7 @@ class driveTrain:
         NOTE: The final angle may be in unit circle degrees and not in normal oriented degrees this is most likely the problem if the drivetrain has a 90 degree offset
         '''
         
-        #The joysticks y axis is inverted for some reason
+        #The joystick's y axis is inverted for some reason
         angle = self.odometry.getRobotPose()[2]
         if self.fieldOrient:
             angle %= 360
@@ -50,7 +59,7 @@ class driveTrain:
             translationVector = self.rotateCartesianPlane(angleRadians, joystickX, joystickY)
         else:
             translationVector = (joystickX, joystickY)
-
+            
         fLRotationVector = (joystickRotation*math.cos(self.fLRotationVectorAngle), joystickRotation*math.sin(self.fLRotationVectorAngle))
         fRRotationVector = (joystickRotation*math.cos(self.fRRotationVectorAngle), joystickRotation*math.sin(self.fRRotationVectorAngle))
         rLRotationVector = (joystickRotation*math.cos(self.rLRotationVectorAngle), joystickRotation*math.sin(self.rLRotationVectorAngle))
@@ -82,6 +91,7 @@ class driveTrain:
         self.swerveModules["frontRight"].move(fRSpeed, fRAngle)
         self.swerveModules["rearLeft"].move(rLSpeed, rLAngle)
         self.swerveModules["rearRight"].move(rRSpeed, rRAngle)
+        print()
 
     def reInitiateMotorEncoders(self):
         ''' Call this when actually re-zeroing the motor absolutes '''
@@ -113,3 +123,9 @@ class driveTrain:
     
     def getFieldPosition(self):
         return self.odometry.getRobotPose()
+    
+    def updateOdometry(self):
+        self.odometry.update()
+    
+    def resetOdometry(self):
+        self.odometry.reset()

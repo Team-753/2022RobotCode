@@ -7,16 +7,16 @@ class swerveModule:
     def __init__(self, driveID: int, turnID: int, absoluteID: int, absoluteOffset: float, moduleName: str):
         if moduleName == "frontLeft":
             # do something
-            kPTurn, kITurn, kDTurn = 0.005, 0.003, 0
+            kPTurn, kITurn, kDTurn = 0.006, 0, 0
         elif moduleName == "frontRight":
             # do something
-            kPTurn, kITurn, kDTurn = 0.005, 0.003, 0
+            kPTurn, kITurn, kDTurn = 0.006, 0, 0
         elif moduleName == "rearLeft":
             # do something
-            kPTurn, kITurn, kDTurn = 0.005, 0.003, 0
+            kPTurn, kITurn, kDTurn = 0.006, 0, 0
         elif moduleName == "rearRight":
             # do something
-            kPTurn, kITurn, kDTurn = 0.005, 0.003, 0
+            kPTurn, kITurn, kDTurn = 0.006, 0, 0
             
         self.CPR = 2048
         self.turningGearRatio = 12.8 # The steering motor gear ratio
@@ -50,14 +50,24 @@ class swerveModule:
             angle -= 90
         return(angle)
     
+    def fixAngleBounds(self, angle: float):
+        angle -= 90
+        angle += 180
+        angle %= 360
+        angle -= 180
+        return(angle)
+    
     def move(self, magnitude: float, angle: float):
         ''' Magnitude with an input range for 0-1, and an angle of -180->180'''
-        angle = self.navxAngleToUnitCircle(angle)
+        #angle = self.navxAngleToUnitCircle(angle)
+        angle = self.fixAngleBounds(angle)
         motorPosition = self.optimize(angle)
+        # print(f"{self.moduleName} Optimize Motor Position: {motorPosition}")
         if self.moduleReversed:
             magnitude = -magnitude
         self.turnController.setSetpoint(angle)
         turnSpeed = self.turnController.calculate(motorPosition)
+        print(str(self.moduleName) + ": " + str(motorPosition))
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
         self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude * self.speedLimitingFactor)
         
@@ -97,15 +107,16 @@ class swerveModule:
             oppositeAngle = motorPosition - 180
             if oppositeAngle < -180:
                 oppositeAngle += 360
-            return oppositeAngle
+            return motorPosition
     
     def getDriveMotorVelocity(self):
         ''' Returns the drive motor velocity in meters per second '''
         velocityMPS = self.driveMotor.getSelectedSensorVelocity(0) * 10 * 0.0508 * math.pi / self.CPR
-        if self.moduleReversed:
+        '''if self.moduleReversed:
             return -velocityMPS
         else:
-            return velocityMPS
+            return velocityMPS'''
+        return velocityMPS
     
     '''def enableToZero(self):
         motorPosition = self.motorPosition()
@@ -136,8 +147,9 @@ class swerveModule:
         else:
             self.moduleReversed = False
             return motorPosition
+            
     
     def returnValues(self):
-        motorPosition = self.motorPosition()
+        motorPosition = self.getTurnMotorPosition()
         rawAbsolute = self.absoluteEncoder.getAbsolutePosition() - self.absoluteOffset
         return (motorPosition, self.absoluteEncoder.getAbsolutePosition(), self.absoluteOffset, rawAbsolute) 
