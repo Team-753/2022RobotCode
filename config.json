@@ -64,12 +64,8 @@
     "pistonID1": 2,
     "pistonID2": 3
   },
-  "Shooter": {
-
-  },
-  "Tower": {
-
-  },
+  "Shooter": {},
+  "Tower": {},
   "RobotDimensions": {
     "trackWidth": 36,
     "wheelBase": 48,

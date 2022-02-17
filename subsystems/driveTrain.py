@@ -1,13 +1,9 @@
-from pickletools import optimize
-from ctre._ctre import AbsoluteSensorRange, SensorInitializationStrategy
-import wpilib
 import math
-import ctre
 import json
 import os
+import ctre
 import wpilib
 import wpimath.controller
-# TODO: Figure out angle conversion stuff bc it still might be in unit circle -180->180, and also find an actual talonFX brake function
 
 class driveTrain:
     def __init__(self, config: dict):
@@ -33,7 +29,7 @@ class driveTrain:
         newY = x*math.cos(angle) + y*math.sin(angle)
         return(newX, newY)
 
-    def manualMove(self, joystickX: float, joystickY: float, joystickRotation: float, angle: float):
+    def move(self, joystickX: float, joystickY: float, joystickRotation: float, angle: float):
         '''
         This method takes the joystick inputs from the driverStation class. 
         First checking to see if it is field oriented and compensating for the navx angle if it is.
@@ -41,9 +37,6 @@ class driveTrain:
         '''
         
         #The joysticks y axis is inverted for some reason
-        joystickY = -joystickY
-        
-        
         if self.fieldOrient:
             angle %= 360
             if angle < -180:
@@ -120,6 +113,21 @@ class driveTrain:
         rearRightValues = self.swerveModules["rearRight"].returnValues()
         return frontLeftValues, frontRightValues, rearLeftValues, rearRightValues
     
+    def zeroAbsolutes(self):
+        ''' Sets the zero of the absolute canCoders - 
+        realistically this function should never have to be called'''
+        self.swerveModules["frontLeft"].zeroAbsolute()
+        self.swerveModules["frontRight"].zeroAbsolute()
+        self.swerveModules["rearLeft"].zeroAbsolute()
+        self.swerveModules["rearRight"].zeroAbsolute()
+        
+    def turnOnly(self, angle):
+        self.swerveModules["frontLeft"].move(0, angle)
+        self.swerveModules["frontRight"].move(0, angle)
+        self.swerveModules["rearLeft"].move(0, angle)
+        self.swerveModules["rearRight"].move(0, angle)
+        
+    
 class swerveModule:
     def __init__(self, driveID: int, turnID: int, absoluteID: int, absoluteOffset: float, moduleName: str):
         if moduleName == "frontLeft":
@@ -146,8 +154,8 @@ class swerveModule:
         self.turnMotor = ctre.TalonFX(turnID)
         
         self.absoluteEncoder = ctre.CANCoder(absoluteID)
-        self.absoluteEncoder.configSensorInitializationStrategy(SensorInitializationStrategy.BootToAbsolutePosition)
-        self.absoluteEncoder.configAbsoluteSensorRange(AbsoluteSensorRange.Signed_PlusMinus180)
+        self.absoluteEncoder.configSensorInitializationStrategy(ctre.SensorInitializationStrategy.BootToAbsolutePosition)
+        self.absoluteEncoder.configAbsoluteSensorRange(ctre.AbsoluteSensorRange.Signed_PlusMinus180)
         self.absoluteEncoder.configMagnetOffset(self.absoluteOffset)
         
         self.turnController = wpimath.controller.PIDController(kPTurn, kITurn, kDTurn)
@@ -157,7 +165,7 @@ class swerveModule:
         
         self.initMotorEncoder()
     
-    def rotateUnitCircle(self, angle):
+    def rotateUnitCircle(self, angle: float):
         if angle < -90:
             angle += 270
         else:
@@ -196,8 +204,8 @@ class swerveModule:
         self.turnMotor.setNeutralMode(ctre.NeutralMode.Brake)
     
     def initMotorEncoder(self):
-        ''' Called to actually set the encoder zero based off of absolute offset and position '''
-        self.turnMotor.configIntegratedSensorAbsoluteRange(AbsoluteSensorRange.Unsigned_0_to_360)
+        ''' Called to set the encoder zero based off of absolute offset and position '''
+        self.turnMotor.configIntegratedSensorAbsoluteRange(ctre.AbsoluteSensorRange.Unsigned_0_to_360)
         self.turnMotor.setSelectedSensorPosition(int(self.absoluteEncoder.getAbsolutePosition() * self.CPR * self.turningGearRatio / 360))
         
     def motorPosition(self):
@@ -217,7 +225,7 @@ class swerveModule:
         turnSpeed = self.turnController.calculate(motorPosition)
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
         
-    def optimize(self, moduleAngle, moduleTarget):
+    def optimize(self, moduleAngle: float, moduleTarget: float):
         normal = abs(moduleAngle - moduleTarget)
         oppositeAngle = moduleAngle - 180
         if oppositeAngle < -180:
@@ -229,6 +237,20 @@ class swerveModule:
         else:
             self.directionReversed = False
             return moduleAngle
+        
+    def zeroAbsolute(self):
+        ''' Realistically this function should NEVER have to be called but
+        just in case... '''
+        currentActualPosition = self.absoluteEncoder.getAbsolutePosition() + self.absoluteOffset # maybe negative?
+        self.absoluteEncoder.configMagnetOffset(currentActualPosition)
+        self.initMotorEncoder()
+        folderPath = os.path.dirname(os.path.abspath(__file__))
+        filePath = os.path.join(folderPath, 'config.json')
+        with open (filePath, "r") as f1:
+            config = json.load(f1)
+        config["SwerveModules"][self.moduleName]["encoderOffset"] = currentActualPosition
+        with open (filePath, "w") as f2:
+            f2.write(json.dumps(config))
     
     def returnValues(self):
         motorPosition = self.motorPosition()
