@@ -34,6 +34,13 @@
       "ID": 16,
       "Name": "rightShoulder"
     },
+    "shoulderPID": {
+      "kP": 0.005,
+      "kI": 0,
+      "kD": 0
+    },
+    "shoulderCurrentLimit": 35,
+    "shoulderStressedVelocityThreshold": 2,
     "leftWinch": {
       "ID": 13,
       "Name": "leftWinch"
@@ -42,11 +49,20 @@
       "ID": 14,
       "Name": "rightWinch"
     },
+    "winchPID": {
+      "kP": 0.005,
+      "kI": 0,
+      "kD": 0
+    },
+    "winchCurrentLimit": 35,
+    "winchStressedVelocityThreshold": 2,
     "leftHook_PCM_ID": 0,
     "rightHook_PCM_ID": 1
   },
   "Intake": {
-
+    "motorID": 17,
+    "pistonID1": 2,
+    "pistonID2": 3
   },
   "Shooter": {
 
