@@ -1,5 +1,4 @@
 import wpilib
-import os
 import rev
 
 class Intake:

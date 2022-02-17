@@ -42,6 +42,17 @@ class Climber:
         else:
             self.rightShoulder.brake()
     
+    def moveShoulder(self, speed):
+        if speed > 0:
+            self.leftShoulder.forward(speed)
+            self.rightShoulder.forward(speed)
+        elif speed < 0:
+            self.leftShoulder.backward(speed)
+            self.rightShoulder.backward(speed)
+        else:
+            self.leftShoulder.brake()
+            self.rightShoulder.brake()
+    
     def setWinchPosition(self, position):
         self.winchPID.setSetpoint(position)
         
@@ -60,7 +71,17 @@ class Climber:
             self.rightWinch.backward(speed)
         else:
             self.rightWinch.brake()
-
+    
+    def moveWinch(self, speed):
+        if speed > 0:
+            self.leftWinch.forward(speed)
+            self.rightWinch.forward(speed)
+        elif speed < 0:
+            self.leftWinch.backward(speed)
+            self.rightWinch.backward(speed)
+        else:
+            self.leftWinch.brake()
+            self.rightWinch.brake()
 
     def extendArms(self):
         ''''''
@@ -119,8 +140,6 @@ class Shoulder:
     def brake(self):
         self.motor.set(0)
         self.motor.setIdleMode(rev.IdleMode.kBrake)
-        
-
 
 
 class Winch:

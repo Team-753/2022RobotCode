@@ -1,13 +1,15 @@
 import wpilib
+import rev
 
 class Shooter:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, config = dict) -> None:
+        self.flywheel = rev.CANSparkMax(config["Shooter"]["motorID"])
     
 class Feeder:
-    def __init__(self) -> None:
+    def __init__(self, config = dict) -> None:
         pass
 
-class ballClimber:
-    def __init__(self) -> None:
+class BallClimber:
+    def __init__(self, config = dict) -> None:
         pass
+
