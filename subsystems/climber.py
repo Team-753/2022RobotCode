@@ -155,7 +155,7 @@ class Winch:
         '''This checks if the winch is moving and how much current it is drawing.
         If it isn't moving and it is drawing too much current, the winch will be 'disabled'. '''
         current = self.motor.getStatorCurrent()
-        velocity = self.motor.getSelectedSensorVelocity()
+        velocity = self.motor.getSelectedSensorVelocity() # may have to convert this to rad/s
         wpilib.SmartDashboard.putNumber("Winch Sensor Velocity", velocity)
         if velocity < self.velocityLimit and current > self.currentLimit:
             self.disabled = True

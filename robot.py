@@ -58,19 +58,6 @@ class MyRobot(wpilib.TimedRobot):
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
         self.driveTrain.refreshValues()
-    
-    def testInit(self):
-        self.persistant = False
-        self.Timer.reset()
-        #self.functionDict
-        self.timeList = [0]
-        self.index = 0
-    
-    def testPeriodic(self):
-        if self.Timer.get() < self.timeList[len(self.timeList)]:
-            if self.Timer.hasPeriodPassed(self.timeList[self.index]):
-                self.index += 1
-                
             
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''

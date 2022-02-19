@@ -18,3 +18,10 @@ class Intake:
             self.lifter.set(wpilib.DoubleSolenoid.Value.kForward)
         elif position == 0:
             self.lifter.set(wpilib.DoubleSolenoid.Value.kOff)
+            
+    def intakeDown(self):
+        self.lifter.set() # whatever down is
+        
+    def intakeUp(self):
+        self.lifter.set() # whatever intake up is
+        
