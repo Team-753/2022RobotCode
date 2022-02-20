@@ -67,7 +67,6 @@ class swerveModule:
             magnitude = -magnitude
         self.turnController.setSetpoint(angle)
         turnSpeed = self.turnController.calculate(motorPosition)
-        print(str(self.moduleName) + ": " + str(motorPosition))
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
         self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude * self.speedLimitingFactor)
         
