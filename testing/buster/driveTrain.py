@@ -91,7 +91,6 @@ class driveTrain:
         self.swerveModules["frontRight"].move(fRSpeed, fRAngle)
         self.swerveModules["rearLeft"].move(rLSpeed, rLAngle)
         self.swerveModules["rearRight"].move(rRSpeed, rRAngle)
-        print()
 
     def reInitiateMotorEncoders(self):
         ''' Call this when actually re-zeroing the motor absolutes '''
