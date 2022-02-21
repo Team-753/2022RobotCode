@@ -10,10 +10,11 @@ class Intake:
     def setCarWashSpeed(self, speed):
         self.carWash.set(speed)
     
-    def setLifterPosition(self, position):
-        if position == -1:
-            self.lifter.set(wpilib.DoubleSolenoid.Value.kReverse)
-        elif position == 1:
-            self.lifter.set(wpilib.DoubleSolenoid.Value.kForward)
-        elif position == 0:
-            self.lifter.set(wpilib.DoubleSolenoid.Value.kOff)
+    def setLifterUp(self):
+        self.lifter.set(wpilib.DoubleSolenoid.Value.kReverse)
+    
+    def setLifterDown(self):
+        self.lifter.set(wpilib.DoubleSolenoid.Value.kForward)
+    
+    def setLifterOff(self):
+        self.lifter.set(wpilib.DoubleSolenoid.Value.kOff)
