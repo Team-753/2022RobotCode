@@ -62,10 +62,19 @@
   "Intake": {
     "motorID": 17,
     "pistonID1": 2,
-    "pistonID2": 3
+    "pistonID2": 3,
+    "inverted": false
   },
-  "Shooter": {},
-  "Tower": {},
+  "Tower": {
+    "towerFeederID": 18,
+    "ballClimberID": 19,
+    "shooterID": 20,
+    "proximitySensorID": 0,
+    "towerFeederInverted": false,
+    "ballClimberInverted": false,
+    "shooterInverted": false
+  },
+
   "RobotDimensions": {
     "trackWidth": 36,
     "wheelBase": 48,

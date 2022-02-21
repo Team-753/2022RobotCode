@@ -11,7 +11,7 @@ from controlsystems.driverStation import driverStation
 from subsystems.climber import Climber
 from subsystems.intake import Intake
 from subsystems.driveTrain import driveTrain
-from subsystems.tower import Shooter, Feeder, ballClimber
+from subsystems.tower import Tower
 
 '''cond = threading.Condition()
 notified = False
@@ -33,6 +33,7 @@ class MyRobot(wpilib.TimedRobot):
         with open (filePath, "r") as f1:
             self.config = json.load(f1)
         self.driveTrain = driveTrain(self.config)
+        self.tower = Tower(self.config)
         self.driverStation = driverStation(self.config)
         self.navx = navx.AHRS.create_spi()
         self.navx.reset()
@@ -47,13 +48,14 @@ class MyRobot(wpilib.TimedRobot):
         '''This function is called periodically during autonomous.'''
 
     def teleopInit(self):
-        self.navx.reset() # NOTE: In production code get rid of this line
+        self.navx.reset() # NOTE: In production code get rid of this line (it will cause problems when autonomous moves the robot)
         
     def teleopPeriodic(self):
         '''This function is called periodically during operator control.'''
         switches = self.driverStation.checkSwitches()
         switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"]))
         self.switchActions(switches)
+        wpilib.SmartDashboard.putNumber("Proximity Sensor", self.tower.getProximitySensor())
         
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
