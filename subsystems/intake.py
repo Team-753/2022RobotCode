@@ -9,7 +9,7 @@ class Intake:
 
     def setCarWashSpeed(self, speed):
         self.carWash.set(speed)
-    
+
     def setLifterUp(self):
         self.lifter.set(wpilib.DoubleSolenoid.Value.kReverse)
     
@@ -18,3 +18,4 @@ class Intake:
     
     def setLifterOff(self):
         self.lifter.set(wpilib.DoubleSolenoid.Value.kOff)
+

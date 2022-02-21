@@ -89,17 +89,7 @@
       "xDeadZone": 0.1,
       "yDeadZone": 0.1,
       "zDeadZone": 0.1
-    }
-  },
-  "matchSettings": {
-    "autonomousTime": 25
-  },
-  "auxiliarySystems": {
-    "neoAuxiliary": {
-      "motorID": 13
     },
-    "falconAuxiliary": {
-      "motorID": 14
-    }
+    "flywheelTriggerThreshold": 0.25
   }
 }

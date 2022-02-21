@@ -1,59 +1,86 @@
 import wpilib
-from robot import navx
 
 class driverStation:
     def __init__(self, config: dict):
-        self.driverStationUtil = wpilib.DriverStation() # this doesnt work please fix
         self.config = config
-        
-        self.checkDriverStationInputs()
-        
-    
-    def checkDriverStationInputs(self):
-        driverInputName = self.driverStationUtil.getJoystickName(0) # Driverstation input is on port 0
-        auxiliaryInputName = self.driverStationUtil.getJoystickName(1) # Auxiliary input is on port 1
-        if driverInputName == "Logitech Extreme 3D": # This string is correct given we are using this joystick
-            self.driverInputType = "Joystick"
-            self.driverInput = wpilib.Joystick(0)
-        elif driverInputName == "Controller (Xbox One For Windows)": # This string may be wrong and needs to be updated once I can see what the correct output is.
-            self.driverInputType = "XboxController"
-            self.driverInput = wpilib.XboxController(0)
-        else:
-            self.driverStationUtil.reportWarning("Driver input is either unplugged or not set to USB0")
-            self.driverInputType = "disconnected"
-        if auxiliaryInputName != "Controller (Xbox One For Windows)":
-            self.driverStationUtil.reportWarning("Auxiliary input is either unplugged or not set to USB1")
-        self.auxiliaryInput = wpilib.XboxController(1)
+        self.driverInput = wpilib.XboxController(0)
+        self.climbCheckOne = False
+        self.climbCheckTwo = False
+        self.climbCheckThree = False
+        self.climbModeActivated = False
+        self.manualClimbing = True # for now...
+        self.peterHookCheckRelease = 0
+        self.peterHookCheckTighten = 0
     
     def checkSwitches(self):
-        switchDict = {
+        switches = {
             "driverX": 0.0,
             "driverY": 0.0,
             "driverZ": 0.0,
             "swapFieldOrient": False,
-            "playEasterEgg": False,
-            "fieldOrient": wpilib.SmartDashboard.getBoolean("fieldOrient", True),
-            "navxAngle": -1*navx.getAngle() + 90,
-            "resetDriveTrainEncoders": False
+            "intakeUp": False,
+            "intakeDown": False,
+            "revShooter": False, # revs the shooter
+            "ballIndexerIn": False, # runs and compliants and feeder (if no ball is at the top)
+            "ballSystemOut": False, # reverses the feeder, compliants, and intake
+            "toggleClimbMode": False,
+            "releasePeterHooks": False,
+            "tightenPeterHooks": False,
+            "macros": {}
         }
-        if self.driverInputType != "disconnected":
-            if self.driverInputType == "XboxController":
-                switchDict["driverX"] = self.driverInput.Axis.kLeftX
-                switchDict["driverY"] = self.driverInput.Axis.kLeftY
-                switchDict["driverZ"] = self.driverInput.Axis.kRightX # NOTE: Use this for turning
-                '''
-                NOTE: Alternatively use this which uses the triggers for turning which may seem weird but could be more accurate:
-                switchDict["driverZ"] = self.driverInput.Axis.kRightTrigger - self.driverInput.Axis.kLeftTrigger
-                '''
-                
-            else: # Joystick
-                switchDict["driverX"] = self.driverInput.getX()
-                switchDict["driverY"] = self.driverInput.getY()
-                switchDict["driverZ"] = self.driverInput.getZ()
-            # after this point is auxiliary code
-            switchDict["swapFieldOrient"] = self.auxiliaryInput.getStartButtonReleased()
-            switchDict["playEasterEgg"] = self.auxiliaryInput.getBButtonReleased()
-            switchDict["resetDriveTrainEncoders"] = self.auxiliaryInput.getBackButtonReleased()
+        
+        if self.driverInput.getBackButtonPressed() and self.driverInput.getStartButtonPressed():
+            self.climbCheckOne = True
+        if self.driverInput.getBackButtonReleased() and self.climbCheckOne:
+            self.climbCheckTwo = True
+        if self.driverInput.getStartButtonReleased() and self.climbCheckOne:
+            self.climbCheckThree = True
+        if self.climbCheckOne and self.climbCheckTwo and self.climbCheckThree:
+            ''' So what is going on here you may ask? Essentially this is the toggle for the climbing mode activation.
+                to 'toggle' climbing, you must press both the back and start buttons at the same time and then release them at any time.
+                These checks first insure that they are being pressed at the same time and then individually check if they have been released so it
+                only sends the toggle command once. You do not want to toggle multiple times over for something like this.'''
+            self.climbCheckOne = False
+            self.climbCheckTwo = False
+            self.climbCheckThree = False
+            switches["toggleClimbMode"] = True
+        
+        if not self.climbModeActivated: # normal driving mode
+            switches["driverX"] = self.driverInput.getLeftX()
+            switches["driverY"] = self.driverInput.getLeftY()
+            switches["driverZ"] = self.driverInput.getRightX()
+            if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
+                switches["swapFieldOrient"] = True
+            dPadState = self.driverInput.getPOV() # non-momentary
+            if dPadState == 0:
+                switches["intakeUp"] = True
+            elif dPadState == 180:
+                switches["intakeDown"] = True
+            if self.driverInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
+                switches["revShooter"] = True
+            switches["ballSystemOut"] = self.driverInput.getBButtonPressed()
+            switches["ballIndexerIn"] = self.driverInput.getRightBumperPressed()  #will do checks on this later ie: if flywheel is at sufficient rpm and such 
         else:
-            self.checkDriverStationInputs()
-        return switchDict
+            if self.manualClimbing:
+                if self.peterHookCheckRelease > 0:
+                    self.peterHookCheckRelease += 1
+                if self.peterHookCheckRelease > 50:
+                    self.peterHookCheckRelease = 0
+                if self.peterHookCheckTighten > 0:
+                    self.peterHookCheckTighten += 1
+                if self.peterHookCheckTighten > 50:
+                    self.peterHookCheckTighten = 0
+                if self.driverInput.getYButtonReleased():
+                    if self.peterHookCheckRelease == 0:
+                        self.peterHookCheckRelease = 1
+                    elif self.peterHookCheckRelease > 0:
+                        self.peterHookCheckRelease = 0
+                        switches["releasePeterHooks"] = True
+                if self.driverInput.getAButtonReleased():
+                    if self.peterHookCheckTighten == 0:
+                        self.peterHookCheckTighten = 1
+                    elif self.peterHookCheckTighten > 0:
+                        self.peterHookCheckTighten = 0
+                        switches["tightenPeterHooks"] = True
+                        
+        return switches
