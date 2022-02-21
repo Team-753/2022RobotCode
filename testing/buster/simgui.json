@@ -1,0 +1,8 @@
+{
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo",
+      "/LiveWindow/Ungrouped/navX-Sensor[0]": "Gyro"
+    }
+  }
+}
