@@ -1,6 +1,3 @@
-#trying to use github
-#making changes on github
-
 import wpilib
 import ctre
 import os
