@@ -105,7 +105,7 @@ class Shoulder:
         self.currentLimit = config["Climber"]["shoulderCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["shoulderStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
         self.encoder = self.motor.getEncoder(counts_per_rev=2480)
-        self.disabled = False
+        self.motor.FaultID.kSoftLimitRev = 0.01 # This is in rotations, and prevents backwards movement beyond the specified encoder value
         self.name = name
         if self.name == "leftShoulder":
             self.motor.setInverted(True)
@@ -114,24 +114,13 @@ class Shoulder:
 
     def forward(self, speed):
         self.motor.set(speed)
-        self.disabled = False
     
     def backward(self, speed):
-        self.checkEffort()
-        if self.disabled == False:
-            self.motor.set(speed)
-            wpilib.SmartDashboard.putBool(self.name + " stopped", False)
+        self.motor.set(speed)
+        if self.motor.getFault(rev.CANSparkMax.FaultID.kSoftLimitRev):
+            wpilib.SmartDashboard.putBool(self.name + " stopped", True)
         else:
-            self.motor.set(0)
-            self.motor.setIdleMode(rev.IdleMode.kBrake)
-            wpilib.SmartDashboard.putBool(self.name + " stopped" + True)
-    
-    def checkEffort(self):
-        current = self.motor.getOutputCurrent()
-        velocity = self.encoder.getVelocity()
-        wpilib.SmartDashboard.putNumber("Shoulder Encoder RPM", velocity)
-        if velocity < self.velocityLimit and current > self.currentLimit:
-            self.disabled = True
+            wpilib.SmartDashboard.putBool(self.name + " stopped", False)
     
     def getAngle(self):
         angle = self.encoder.getPosition() * 360
@@ -141,7 +130,6 @@ class Shoulder:
         self.motor.set(0)
         self.motor.setIdleMode(rev.IdleMode.kBrake)
 
-
 class Winch:
     '''The forward and backward directions need to be tested.'''
     def __init__(self, talonID, name, config):
@@ -149,7 +137,7 @@ class Winch:
         self.currentLimit = config["Climber"]["winchCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["winchStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
         self.motor.setSelectedSensorPosition(0)
-        self.disabled = False
+        self.motor.configReverseSoftLimitThreshold(25) # This is in encoder ticks, and it prevents backwards movement beyond the specified encoder value
         self.name = name
         if self.name == "leftWinch":
             self.motor.setInverted(True)
@@ -158,26 +146,13 @@ class Winch:
 
     def release(self, speed):
         self.motor.set(ctre.ControlMode.PercentOutput, speed)
-        self.disabled = False
 
     def retract(self, speed):
-        self.checkEffort()
-        if self.disabled == False:
-            self.motor.set(ctre.ControlMode.PercentOutput, speed)
+        self.motor.set(ctre.ControlMode.PercentOutput, speed)
+        if ctre.Faults.ReverseSoftLimit in self.motor.getFaults():
             wpilib.SmartDashboard.putBool(self.name + " stopped", False)
         else:
-            self.motor.set(ctre.ControlMode.PercentOutput, 0)
-            self.motor.setNeutralMode(ctre.NeutralMode.Brake)
             wpilib.SmartDashboard.putBool(self.name + " stopped", True)
-
-    def checkEffort(self):
-        '''This checks if the winch is moving and how much current it is drawing.
-        If it isn't moving and it is drawing too much current, the winch will be 'disabled'. '''
-        current = self.motor.getStatorCurrent()
-        velocity = self.motor.getSelectedSensorVelocity()
-        wpilib.SmartDashboard.putNumber("Winch Sensor Velocity", velocity)
-        if velocity < self.velocityLimit and current > self.currentLimit:
-            self.disabled = True
     
     def getPosition(self):
         position = self.motor.getSelectedSensorPosition()
