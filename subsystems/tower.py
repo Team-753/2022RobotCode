@@ -1,4 +1,3 @@
-from hal import setPWMPeriodScale
 import wpilib
 import rev
 import ctre
@@ -10,8 +9,10 @@ class Tower:
         self.shooterEncoder = self.shooterMotor.getEncoder()
 
         self.feederMotor = ctre.VictorSPX(config["Tower"]["towerFeederID"])
+        self.feederSpeed = 0.5
 
         self.ballClimberMotor = ctre.VictorSPX(config["Tower"]["ballClimberID"])
+        self.ballClimberSpeed = 0.5
 
         self.proximitySensor = wpilib.DigitalInput(config["Tower"]["proximitySensorID"])
 
@@ -55,15 +56,21 @@ class Tower:
         return(False)
     
     def prepareBall(self):
-        self.setFeederSpeed(1)
+        self.setFeederSpeed(self.feederSpeed)
         if self.getBallDetected:
-            self.setBallClimberSpeed(1)
+            self.setBallClimberSpeed(self.ballClimberSpeed)
         else:
             self.setBallClimberSpeed(0)
-    
-    def FIRE(self, targetVelocity):
+        
+    def reverse(self):
+        self.setFeederSpeed(-self.feederSpeed)
+        self.setBallClimberSpeed(-self.ballClimberSpeed)
+
+    def shoot(self, targetVelocity):
+        '''Sets a target velocity for the shooter in RPM. 
+        When it gets within the shooter's PID tolerance it turns on the feeder and ball climber.'''
         if abs(self.getShooterVelocity() - targetVelocity) < self.PIDTolerance:
-            self.setFeederSpeed(1)
-            self.setBallClimberSpeed(1)
+            self.setFeederSpeed(self.feederSpeed)
+            self.setBallClimberSpeed(self.ballClimberSpeed)
         else:
             self.setShooterVelocity(targetVelocity)
