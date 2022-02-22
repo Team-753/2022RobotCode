@@ -34,6 +34,7 @@ class MyRobot(wpilib.TimedRobot):
             self.config = json.load(f1)
         self.driveTrain = driveTrain(self.config)
         self.tower = Tower(self.config)
+        self.intake = Intake(self.config)
         self.driverStation = driverStation(self.config)
         self.navx = navx.AHRS.create_spi()
         self.navx.reset()
@@ -76,16 +77,19 @@ class MyRobot(wpilib.TimedRobot):
         if switchDict["resetDriveTrainEncoders"]:
             self.driveTrain.reInitiateMotorEncoders()
         
+        if switchDict["intakeUp"]:
+            self.intake.setLifterUp()
+        if switchDict["intakeDown"]:
+            self.intake.setLifterDown()
+            
+        if switchDict["revShooter"]:
+            self.tower.shoot(5000)
+        
         if switchDict["ballIndexerIn"]:
             self.tower.prepareBall()
         if switchDict["ballSystemOut"]:
             self.tower.reverse()
         
-        # The velocity for the shooter needs to be specified but the actual calculation requires vision I think.
-        # I set it up for vision to change the shooter velocity in the config file but that can change.
-        # NOTE: Joe please fix this because I don't know how you want to do this.
-        if switchDict["revShooter"]:
-            self.tower.shoot(self.config["Tower"]["shooterVelocity"])
 
     def evaluateDeadzones(self, inputs):
         adjustedInputs = []

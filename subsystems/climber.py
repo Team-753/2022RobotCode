@@ -105,7 +105,8 @@ class Shoulder:
         self.currentLimit = config["Climber"]["shoulderCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["shoulderStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
         self.encoder = self.motor.getEncoder(counts_per_rev=2480)
-        self.motor.FaultID.kSoftLimitRev = 0.01 # This is in rotations, and prevents backwards movement beyond the specified encoder value
+        self.motor.FaultID.kSoftLimitRev = 5 # This is in rotations (with a 100 to 1 gear ratio), and prevents backwards movement beyond the specified encoder value
+        self.motor.FaultID.kSoftLimitFwd = 60
         self.name = name
         if self.name == "leftShoulder":
             self.motor.setInverted(True)
@@ -128,7 +129,7 @@ class Shoulder:
     
     def brake(self):
         self.motor.set(0)
-        self.motor.setIdleMode(rev.IdleMode.kBrake)
+        self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
 
 class Winch:
     '''The forward and backward directions need to be tested.'''
@@ -137,7 +138,7 @@ class Winch:
         self.currentLimit = config["Climber"]["winchCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["winchStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
         self.motor.setSelectedSensorPosition(0)
-        self.motor.configReverseSoftLimitThreshold(25) # This is in encoder ticks, and it prevents backwards movement beyond the specified encoder value
+        self.motor.configReverseSoftLimitThreshold(100) # This is in encoder ticks, and it prevents backwards movement beyond the specified encoder value
         self.name = name
         if self.name == "leftWinch":
             self.motor.setInverted(True)

@@ -72,8 +72,7 @@
     "proximitySensorID": 0,
     "towerFeederInverted": false,
     "ballClimberInverted": false,
-    "shooterInverted": false,
-    "shooterVelocity": 100
+    "shooterInverted": false
   },
 
   "RobotDimensions": {

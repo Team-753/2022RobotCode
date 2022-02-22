@@ -26,9 +26,63 @@ class driverStation:
             "toggleClimbMode": False,
             "releasePeterHooks": False,
             "tightenPeterHooks": False,
+            "intakeOn": False,
+            "intakeOff": False,
             "macros": {}
         }
         
+        
+        switches["toggleClimbMode"] = self.checkClimbingModeToggle()
+        
+        if not self.climbModeActivated: # normal driving mode
+            switches["driverX"] = self.driverInput.getLeftX()
+            switches["driverY"] = self.driverInput.getLeftY()
+            switches["driverZ"] = self.driverInput.getRightX()
+            if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
+                switches["swapFieldOrient"] = True
+            dPadState = self.driverInput.getPOV()
+            if dPadState == 90:
+                switches["intakeUp"] = True
+            elif dPadState == 270:
+                switches["intakeDown"] = True
+            elif dPadState == 0:
+                switches["intakeOn"] = True
+            elif dPadState == 180:
+                dPadState["intakeOff"] = True
+            if self.driverInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
+                switches["revShooter"] = True
+            switches["ballSystemOut"] = self.driverInput.getBButtonPressed()
+            switches["ballIndexerIn"] = self.driverInput.getRightBumperPressed()  #will do checks on this later ie: if flywheel is at sufficient rpm and such 
+        else:
+            if self.manualClimbing:
+                switches["releasePeterHooks"], switches["tightenPeterHooks"] = self.peterHooks()
+
+        return switches
+
+    def peterHooks(self):
+        if self.peterHookCheckRelease > 0:
+            self.peterHookCheckRelease += 1
+        if self.peterHookCheckRelease > 50:
+            self.peterHookCheckRelease = 0
+        if self.peterHookCheckTighten > 0:
+            self.peterHookCheckTighten += 1
+        if self.peterHookCheckTighten > 50:
+            self.peterHookCheckTighten = 0
+        if self.driverInput.getYButtonReleased():
+            if self.peterHookCheckRelease == 0:
+                self.peterHookCheckRelease = 1
+            elif self.peterHookCheckRelease > 0:
+                self.peterHookCheckRelease = 0
+                releasePeterHooks = True
+        if self.driverInput.getAButtonReleased():
+            if self.peterHookCheckTighten == 0:
+                self.peterHookCheckTighten = 1
+            elif self.peterHookCheckTighten > 0:
+                self.peterHookCheckTighten = 0
+                tightenPeterHooks = True
+        return(releasePeterHooks, tightenPeterHooks)
+    
+    def checkClimbingModeToggle(self):
         if self.driverInput.getBackButtonPressed() and self.driverInput.getStartButtonPressed():
             self.climbCheckOne = True
         if self.driverInput.getBackButtonReleased() and self.climbCheckOne:
@@ -43,44 +97,4 @@ class driverStation:
             self.climbCheckOne = False
             self.climbCheckTwo = False
             self.climbCheckThree = False
-            switches["toggleClimbMode"] = True
-        
-        if not self.climbModeActivated: # normal driving mode
-            switches["driverX"] = self.driverInput.getLeftX()
-            switches["driverY"] = self.driverInput.getLeftY()
-            switches["driverZ"] = self.driverInput.getRightX()
-            if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
-                switches["swapFieldOrient"] = True
-            dPadState = self.driverInput.getPOV() # non-momentary
-            if dPadState == 0:
-                switches["intakeUp"] = True
-            elif dPadState == 180:
-                switches["intakeDown"] = True
-            if self.driverInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
-                switches["revShooter"] = True
-            switches["ballSystemOut"] = self.driverInput.getBButtonPressed()
-            switches["ballIndexerIn"] = self.driverInput.getRightBumperPressed()  #will do checks on this later ie: if flywheel is at sufficient rpm and such 
-        else:
-            if self.manualClimbing:
-                if self.peterHookCheckRelease > 0:
-                    self.peterHookCheckRelease += 1
-                if self.peterHookCheckRelease > 50:
-                    self.peterHookCheckRelease = 0
-                if self.peterHookCheckTighten > 0:
-                    self.peterHookCheckTighten += 1
-                if self.peterHookCheckTighten > 50:
-                    self.peterHookCheckTighten = 0
-                if self.driverInput.getYButtonReleased():
-                    if self.peterHookCheckRelease == 0:
-                        self.peterHookCheckRelease = 1
-                    elif self.peterHookCheckRelease > 0:
-                        self.peterHookCheckRelease = 0
-                        switches["releasePeterHooks"] = True
-                if self.driverInput.getAButtonReleased():
-                    if self.peterHookCheckTighten == 0:
-                        self.peterHookCheckTighten = 1
-                    elif self.peterHookCheckTighten > 0:
-                        self.peterHookCheckTighten = 0
-                        switches["tightenPeterHooks"] = True
-                        
-        return switches
+            return(True)
