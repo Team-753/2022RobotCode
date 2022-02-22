@@ -23,13 +23,9 @@ class Odometry:
         self.wheelBase = self.config["RobotDimensions"]["wheelBase"] * 0.0254 # Converted from inches to meters
         
         self.fLRotationVectorAngle = (math.atan2(self.wheelBase, -self.trackWidth) + (math.pi / 2))
-        wpilib.SmartDashboard.putNumber("fLTangent", self.fLRotationVectorAngle)
         self.fRRotationVectorAngle = (math.atan2(self.wheelBase, self.trackWidth) + (math.pi / 2))
-        wpilib.SmartDashboard.putNumber("fRTangent", self.fRRotationVectorAngle)
         self.rLRotationVectorAngle = (math.atan2(-self.wheelBase, -self.trackWidth) + (math.pi / 2))
-        wpilib.SmartDashboard.putNumber("rLTangent", self.rLRotationVectorAngle)
         self.rRRotationVectorAngle = (math.atan2(-self.wheelBase, self.trackWidth) + (math.pi / 2))
-        wpilib.SmartDashboard.putNumber("rRTangent", self.rRRotationVectorAngle)
     
     def update(self):
         dt = time.time() - self.previousTime
@@ -50,28 +46,12 @@ class Odometry:
             tangentialVelocity = angularVelocity  * math.hypot(self.trackWidth, self.wheelBase) / (2 * math.pi)
             if module.moduleName == "frontLeft":
                 rotationAngle = (self.fLRotationVectorAngle) + self.navxAngleToUnitCircle(navxAngle)
-                wpilib.SmartDashboard.putNumber("fLWheelVectorX", wheelVector[0])
-                wpilib.SmartDashboard.putNumber("fLWheelVectorY", wheelVector[1])
-                wpilib.SmartDashboard.putNumber("fLWheelVelocity", wheelVelocity)
-                wpilib.SmartDashboard.putNumber("fLWheelAngle", wheelAngle)
             elif module.moduleName == "frontRight":
                 rotationAngle = (self.fRRotationVectorAngle) + self.navxAngleToUnitCircle(navxAngle)
-                wpilib.SmartDashboard.putNumber("fRWheelVectorX", wheelVector[0])
-                wpilib.SmartDashboard.putNumber("fRWheelVectorY", wheelVector[1])
-                wpilib.SmartDashboard.putNumber("fRWheelVelocity", wheelVelocity)
-                wpilib.SmartDashboard.putNumber("fRWheelAngle", wheelAngle)
             elif module.moduleName == "rearLeft":
                 rotationAngle = (self.rLRotationVectorAngle) + self.navxAngleToUnitCircle(navxAngle)
-                wpilib.SmartDashboard.putNumber("rLWheelVectorX", wheelVector[0])
-                wpilib.SmartDashboard.putNumber("rLWheelVectorY", wheelVector[1])
-                wpilib.SmartDashboard.putNumber("rLWheelVelocity", wheelVelocity)
-                wpilib.SmartDashboard.putNumber("rLWheelAngle", wheelAngle)
             elif module.moduleName == "rearRight":
                 rotationAngle = (self.rRRotationVectorAngle) + self.navxAngleToUnitCircle(navxAngle)
-                wpilib.SmartDashboard.putNumber("rRWheelVectorX", wheelVector[0])
-                wpilib.SmartDashboard.putNumber("rRWheelVectorY", wheelVector[1])
-                wpilib.SmartDashboard.putNumber("rRWheelVelocity", wheelVelocity)
-                wpilib.SmartDashboard.putNumber("rRWheelAngle", wheelAngle)
             rotationVector = (tangentialVelocity * math.cos(rotationAngle), tangentialVelocity * math.sin(rotationAngle))
 
             xVelocity = wheelVector[0] - rotationVector[0]
