@@ -63,7 +63,8 @@
     "motorID": 17,
     "pistonID1": 2,
     "pistonID2": 3,
-    "inverted": false
+    "inverted": false,
+    "IntakeSpeed": 0.5
   },
   "Tower": {
     "towerFeederID": 18,

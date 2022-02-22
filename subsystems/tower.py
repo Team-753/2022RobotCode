@@ -14,7 +14,7 @@ class Tower:
         self.ballClimberMotor = ctre.VictorSPX(config["Tower"]["ballClimberID"])
         self.ballClimberSpeed = 0.5
 
-        self.proximitySensor = wpilib.DigitalInput(config["Tower"]["proximitySensorID"])
+        self.proximitySensor = wpilib.AnalogInput(config["Tower"]["proximitySensorID"]) # the pr
 
         self.PIDTolerance = 42
         self.kP = 0.005
@@ -32,14 +32,18 @@ class Tower:
         self.feederMotor.set(ctre.ControlMode.PercentOutput, speed)
     
     def towerBrake(self):
-        self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
         self.ballClimberMotor.setNeutralMode(ctre.NeutralMode.Brake)
         self.feederMotor.setNeutralMode(ctre.NeutralMode.Brake)
     
     def towerCoast(self):
-        self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
         self.ballClimberMotor.setNeutralMode(ctre.NeutralMode.Coast)
         self.feederMotor.setNeutralMode(ctre.NeutralMode.Coast)
+    
+    def coastShooter(self):
+        self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
+        
+    def brakeShooter(self):
+        self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
     
     def setBallClimberSpeed(self, speed):
         '''Sets the percent output of the tower's ball climber motor.'''
@@ -51,7 +55,7 @@ class Tower:
     
     def getBallDetected(self):
         '''This will return True or False (ball or no ball) when I figure out what the sensor values are.'''
-        value = self.proximitySensor.get()
+        value = self.proximitySensor.getValue()
         wpilib.SmartDashboard.putNumber("Proximity Sensor", value)
         return(False)
     

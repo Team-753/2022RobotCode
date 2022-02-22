@@ -36,17 +36,18 @@ class MyRobot(wpilib.TimedRobot):
         self.tower = Tower(self.config)
         self.intake = Intake(self.config)
         self.driverStation = driverStation(self.config)
-        self.navx = navx.AHRS.create_spi()
+        self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=100)
         self.navx.reset()
         self.Timer = wpilib.Timer()
-        self.autonomousMode = "smart" # alternatively "dumb"
         
 
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
+        pass
 
     def autonomousPeriodic(self):
         '''This function is called periodically during autonomous.'''
+        pass
 
     def teleopInit(self):
         self.navx.reset() # NOTE: In production code get rid of this line (it will cause problems when autonomous moves the robot)
@@ -60,37 +61,50 @@ class MyRobot(wpilib.TimedRobot):
         
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
-        self.driveTrain.refreshValues()
+        # self.driveTrain.refreshValues()
             
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''
         if switchDict["driverX"] != 0 or switchDict["driverY"] != 0 or switchDict["driverZ"] != 0:
             self.driveTrain.manualMove(switchDict["driverX"], switchDict["driverY"], switchDict["driverZ"], switchDict["navxAngle"])
-
         else:
             self.driveTrain.stationary()
-
+            
         if switchDict["swapFieldOrient"]:
             self.driveTrain.fieldOrient = not self.driveTrain.fieldOrient # swaps field orient to its opposite value
             wpilib.SmartDashboard.putBoolean("Field Orient", self.driveTrain.fieldOrient)
-
+            
         if switchDict["resetDriveTrainEncoders"]:
             self.driveTrain.reInitiateMotorEncoders()
-        
+            
         if switchDict["intakeUp"]:
             self.intake.setLifterUp()
+            
         if switchDict["intakeDown"]:
             self.intake.setLifterDown()
             
+        if switchDict["intakeOn"]:
+            self.intake.carWashOn()
+            
+        if switchDict["intakeOff"]:
+            self.intake.carWashOff() 
+            
         if switchDict["revShooter"]:
-            self.tower.shoot(5000)
-        
+            self.tower.shoot(5000) 
+        else:
+            self.tower.coastShooter()
+            
         if switchDict["ballIndexerIn"]:
-            self.tower.prepareBall()
-        if switchDict["ballSystemOut"]:
+            self.tower.prepareBall()   
+        elif switchDict["ballSystemOut"]:
             self.tower.reverse()
+            self.intake.carWashReverse()
+        else:
+            self.tower.towerCoast()
+            
+        if not self.intake.carWashDisabled:
+            self.intake.carWashOn()
         
-
     def evaluateDeadzones(self, inputs):
         adjustedInputs = []
         for idx, input in enumerate(inputs):
@@ -107,7 +121,9 @@ class MyRobot(wpilib.TimedRobot):
     def nonEmergencyStop(self):
         ''' Exactly as it says, stops all of the functions of the robot '''
         self.driveTrain.stationary()
-        # will add more as they come
+        self.tower.towerCoast()
+        self.intake.carWashOff()
+        self.tower.coastShooter()
 
 if __name__ == "__main__":
     wpilib.run(MyRobot)
