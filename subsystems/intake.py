@@ -28,7 +28,6 @@ class Intake:
     def setLifterDown(self):
         self.lifter.set(wpilib.DoubleSolenoid.Value.kForward)
         self.carWashOn()
-        self.carWashDisabled = False
     
     def setLifterOff(self):
         self.lifter.set(wpilib.DoubleSolenoid.Value.kOff)

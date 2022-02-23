@@ -1,7 +1,6 @@
 import wpilib
 import json
 import os
-from time import strftime, gmtime
 from networktables import NetworkTables
 import navx
 import threading
@@ -39,6 +38,7 @@ class MyRobot(wpilib.TimedRobot):
         self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=100)
         self.navx.reset()
         self.Timer = wpilib.Timer()
+        self.DEBUGSTATEMENTS = False
         
 
     def autonomousInit(self):
@@ -57,12 +57,24 @@ class MyRobot(wpilib.TimedRobot):
         switches = self.driverStation.checkSwitches()
         switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"]))
         self.switchActions(switches)
-        wpilib.SmartDashboard.putNumber("Proximity Sensor", self.tower.getProximitySensor())
+        if self.DEBUGSTATEMENTS:
+            wpilib.SmartDashboard.putNumber("Proximity Sensor", self.tower.getProximitySensor())
         
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
-        # self.driveTrain.refreshValues()
-            
+        if self.DEBUGSTATEMENTS:
+            vals = self.driveTrain.refreshValues()
+            wpilib.SmartDashboard.putNumber("FrontLeftAbs", vals[0][3])
+            wpilib.SmartDashboard.putNumber("FrontRightAbs", vals[1][3])
+            wpilib.SmartDashboard.putNumber("RearLeftAbs", vals[2][3])
+            wpilib.SmartDashboard.putNumber("RearRightAbs", vals[3][3])
+    
+    def disabledInit(self) -> None:
+        self.driveTrain.coast()
+        self.tower.towerCoast()
+        self.tower.coastShooter()
+        self.intake.carWashOff()
+    
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''
         if switchDict["driverX"] != 0 or switchDict["driverY"] != 0 or switchDict["driverZ"] != 0:
@@ -90,7 +102,7 @@ class MyRobot(wpilib.TimedRobot):
             self.intake.carWashOff() 
             
         if switchDict["revShooter"]:
-            self.tower.shoot(5000) 
+            self.tower.shoot(5000) # this is temporary until we can start getting vision data
         else:
             self.tower.coastShooter()
             
