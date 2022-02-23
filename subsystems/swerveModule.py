@@ -79,7 +79,7 @@ class swerveModule:
         
     def coast(self):
         ''' Coasts the swerve module '''
-        self.driveMotor.setsetNeutralMode(ctre.NeutralMode.Coast)
+        self.driveMotor.setNeutralMode(ctre.NeutralMode.Coast)
         self.turnMotor.setNeutralMode(ctre.NeutralMode.Coast)
     
     def brake(self):

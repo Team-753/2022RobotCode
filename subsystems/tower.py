@@ -5,7 +5,7 @@ import wpimath.controller
 
 class Tower:
     def __init__(self, config):
-        self.shooterMotor = rev.CANSparkMax(config["Tower"]["shooterID"])
+        self.shooterMotor = rev.CANSparkMax(config["Tower"]["shooterID"], rev._rev.CANSparkMaxLowLevel.MotorType.kBrushless)
         self.shooterEncoder = self.shooterMotor.getEncoder()
 
         self.feederMotor = ctre.VictorSPX(config["Tower"]["towerFeederID"])
@@ -14,7 +14,7 @@ class Tower:
         self.ballClimberMotor = ctre.VictorSPX(config["Tower"]["ballClimberID"])
         self.ballClimberSpeed = 0.5
 
-        self.proximitySensor = wpilib.AnalogInput(config["Tower"]["proximitySensorID"]) # the pr
+        self.proximitySensor = wpilib.AnalogInput(config["Tower"]["proximitySensorID"])
 
         self.PIDTolerance = 42
         self.kP = 0.005

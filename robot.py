@@ -5,7 +5,7 @@ from networktables import NetworkTables
 import navx
 import threading
 from subsystems.driveTrain import driveTrain
-from controlsystems.autonomous import autonomous
+from controlsystems.autonomous import Autonomous
 from controlsystems.driverStation import driverStation
 from subsystems.climber import Climber
 from subsystems.intake import Intake
@@ -31,12 +31,12 @@ class MyRobot(wpilib.TimedRobot):
         filePath = os.path.join(folderPath, 'config.json')
         with open (filePath, "r") as f1:
             self.config = json.load(f1)
-        self.driveTrain = driveTrain(self.config)
         self.tower = Tower(self.config)
         self.intake = Intake(self.config)
         self.driverStation = driverStation(self.config)
         self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=100)
         self.navx.reset()
+        self.driveTrain = driveTrain(self.config, self.navx)
         self.Timer = wpilib.Timer()
         self.DEBUGSTATEMENTS = False
         

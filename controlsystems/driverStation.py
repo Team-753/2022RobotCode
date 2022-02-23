@@ -28,6 +28,7 @@ class driverStation:
             "tightenPeterHooks": False,
             "intakeOn": False,
             "intakeOff": False,
+            "resetDriveTrainEncoders": False,
             "macros": {}
         }
         

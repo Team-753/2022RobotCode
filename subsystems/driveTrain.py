@@ -1,5 +1,5 @@
-from swerveModule import swerveModule
-from odometry import Odometry
+from subsystems.swerveModule import swerveModule
+from subsystems.odometry import Odometry
 import math
 import wpilib
 
