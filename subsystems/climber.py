@@ -21,7 +21,7 @@ class Climber:
         self.leftHook = wpilib.Solenoid(self.config["Climber"]["leftHook_PCM_ID"])
         self.rightHook = wpilib.Solenoid(self.config["Climber"]["rightHook_PCM_ID"])
 
-        self.winchRotationsToDistanceList = self.generateWinchList(2.55, 0.1, 5, 360)
+        self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360)
 
         #self.shoulderPID = wpimath.controller.PIDController(self.config["Climber"]["shoulderPID"]["kP"], self.config["Climber"]["shoulderPID"]["kI"], self.config["Climber"]["shoulderPID"]["kD"])
         #self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
@@ -53,6 +53,18 @@ class Climber:
         rotationValue = a[0] + (deltaRotation*ratioDistance)
         return(rotationValue)
 
+    def getArmInverseKinematics(x, y):
+        '''This returns the angle of the shoulder and the length of strap let out of the winch based on the desired x and y position of the arm hook.'''
+        # TODO: Put these constants in the config file (because they might be wrong).
+        L1 = 11
+        L2 = 2.5
+        L3 = 16.5
+        L4 = math.hypot(L2, L3)
+        L6 = 3
+        theta = math.acos(x/(math.hypot(x,y))) - math.acos(((x**2)+(y**2)+(L1**2)-(L4**2))/(2*L1*math.hypot(x,y))) - (math.pi/4)
+        theta = theta * 180 / math.pi
+        L5 = math.hypot(x,(y-L6))
+        return(L5, theta)
 
     def zeroEncoders(self):
         self.leftShoulder.encoder.setPosition(0)

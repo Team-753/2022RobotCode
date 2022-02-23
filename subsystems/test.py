@@ -35,6 +35,13 @@ def winchRotationLookup(distance):
         rotationValue = a[0] + (deltaR*ratioD)
         return((rotationValue, distance))
 
-print(winchRotationLookup(42))
-
-print(lookupValue(42))
+def getArmInverseKinematics(x, y):
+    '''This returns the angle of the shoulder and the length of strap let out of the winch based on the desired x and y position of the arm hook.'''
+    L1 = 11
+    L2 = 2.5
+    L3 = 16.5
+    L4 = math.hypot(L2, L3)
+    L6 = 3
+    theta = math.acos(x/(math.hypot(x,y))) - math.acos(((x**2)+(y**2)+(L1**2)-(L4**2))/(2*L1*math.hypot(x,y))) - (math.pi/4)
+    L5 = math.hypot(x,(y-L6))
+    return(L5, theta)
