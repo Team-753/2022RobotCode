@@ -120,7 +120,7 @@ class Arm:
 class Shoulder:
     '''The forward and backward directions need to be tested.'''
     def __init__(self, sparkID, name, config):
-        self.motor = rev.CANSparkMax(sparkID, rev.MotorType.kBrushless)
+        self.motor = rev.CANSparkMax(sparkID, rev.CANSparkMax.MotorType.kBrushless)
         self.currentLimit = config["Climber"]["shoulderCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["shoulderStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
         self.encoder = self.motor.getEncoder()
