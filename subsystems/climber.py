@@ -21,8 +21,38 @@ class Climber:
         self.leftHook = wpilib.Solenoid(self.config["Climber"]["leftHook_PCM_ID"])
         self.rightHook = wpilib.Solenoid(self.config["Climber"]["rightHook_PCM_ID"])
 
+        self.winchRotationsToDistanceList = self.generateWinchList(2.55, 0.1, 5, 360)
+
         #self.shoulderPID = wpimath.controller.PIDController(self.config["Climber"]["shoulderPID"]["kP"], self.config["Climber"]["shoulderPID"]["kI"], self.config["Climber"]["shoulderPID"]["kD"])
         #self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
+
+
+    def generateWinchList(self, axleRadius, strapThickness, numberOfWraps, detailPerRotation):
+        '''This generates a list of rotation amounts of the winch and their corresponding distance values that the winch lets out.'''
+        length = 0
+        aList = []
+        for i in range(0,numberOfWraps*detailPerRotation):
+            i /= detailPerRotation
+            currentRadius = math.ceil(numberOfWraps - i)*strapThickness + axleRadius
+            length += currentRadius*2*math.pi/detailPerRotation
+            aList.append((i, length))
+        return(aList)
+    
+    def winchRotationLookup(self, distance):
+        '''This finds the number of rotations you need the winch to do (approximately) based on a distance you want the winch to let out.'''
+        for i in self.winchRotationsToDistanceList:
+            if i[1] > distance:
+                index = self.winchRotationsToDistanceList.index(i)
+                break
+        a = self.winchRotationsToDistanceList[index - 1]
+        b = self.winchRotationsToDistanceList[index]
+        deltaDistance1 = b[1] - a[1]
+        deltaDistance2 = distance - a[1]
+        ratioDistance = deltaDistance2/deltaDistance1
+        deltaRotation = b[0] - a[0]
+        rotationValue = a[0] + (deltaRotation*ratioDistance)
+        return(rotationValue)
+
 
     def zeroEncoders(self):
         self.leftShoulder.encoder.setPosition(0)
