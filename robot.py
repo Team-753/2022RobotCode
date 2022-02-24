@@ -12,7 +12,7 @@ from subsystems.intake import Intake
 from subsystems.driveTrain import driveTrain
 from subsystems.tower import Tower
 
-'''cond = threading.Condition()
+cond = threading.Condition()
 notified = False
 def connectionListener(connected, info):
 	print(info, '; Connected=%s' % connected)
@@ -22,11 +22,13 @@ def connectionListener(connected, info):
 
 NetworkTables.initialize()
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True) # this is also broken
-vision = NetworkTables.getTable('aetherVision')'''
+vision = NetworkTables.getTable('aetherVision')
+smartDash = NetworkTables.getTable('SmartDashboard')
 
 class MyRobot(wpilib.TimedRobot):
-
     def robotInit(self):
+        wpilib.CameraServer.launch()
+        
         folderPath = os.path.dirname(os.path.abspath(__file__))
         filePath = os.path.join(folderPath, 'config.json')
         with open (filePath, "r") as f1:
@@ -39,6 +41,7 @@ class MyRobot(wpilib.TimedRobot):
         self.driveTrain = driveTrain(self.config, self.navx)
         self.Timer = wpilib.Timer()
         self.DEBUGSTATEMENTS = False
+        
         
 
     def autonomousInit(self):
@@ -58,16 +61,16 @@ class MyRobot(wpilib.TimedRobot):
         switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"]))
         self.switchActions(switches)
         if self.DEBUGSTATEMENTS:
-            wpilib.SmartDashboard.putNumber("Proximity Sensor", self.tower.getProximitySensor())
+            smartDash.putNumber("Proximity Sensor", self.tower.getProximitySensor())
         
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
         if self.DEBUGSTATEMENTS:
             vals = self.driveTrain.refreshValues()
-            wpilib.SmartDashboard.putNumber("FrontLeftAbs", vals[0][3])
-            wpilib.SmartDashboard.putNumber("FrontRightAbs", vals[1][3])
-            wpilib.SmartDashboard.putNumber("RearLeftAbs", vals[2][3])
-            wpilib.SmartDashboard.putNumber("RearRightAbs", vals[3][3])
+            smartDash.putNumber("FrontLeftAbs", vals[0][3])
+            smartDash.putNumber("FrontRightAbs", vals[1][3])
+            smartDash.putNumber("RearLeftAbs", vals[2][3])
+            smartDash.putNumber("RearRightAbs", vals[3][3])
     
     def disabledInit(self) -> None:
         self.driveTrain.coast()
@@ -84,7 +87,7 @@ class MyRobot(wpilib.TimedRobot):
             
         if switchDict["swapFieldOrient"]:
             self.driveTrain.fieldOrient = not self.driveTrain.fieldOrient # swaps field orient to its opposite value
-            wpilib.SmartDashboard.putBoolean("Field Orient", self.driveTrain.fieldOrient)
+            smartDash.putBoolean("Field Orient", self.driveTrain.fieldOrient)
             
         if switchDict["resetDriveTrainEncoders"]:
             self.driveTrain.reInitiateMotorEncoders()

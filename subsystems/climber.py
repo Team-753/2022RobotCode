@@ -21,7 +21,7 @@ class Climber:
         self.leftHook = wpilib.Solenoid(self.config["Climber"]["leftHook_PCM_ID"])
         self.rightHook = wpilib.Solenoid(self.config["Climber"]["rightHook_PCM_ID"])
 
-        self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360)
+        self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360) # TODO: change the number of wraps (third parameter) to whatever the amount actually is.
 
         #self.shoulderPID = wpimath.controller.PIDController(self.config["Climber"]["shoulderPID"]["kP"], self.config["Climber"]["shoulderPID"]["kI"], self.config["Climber"]["shoulderPID"]["kD"])
         #self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
