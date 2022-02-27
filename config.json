@@ -56,13 +56,15 @@
     },
     "winchCurrentLimit": 35,
     "winchStressedVelocityThreshold": 2,
-    "leftHook_PCM_ID": 0,
-    "rightHook_PCM_ID": 1
+    "leftHook_PCM_ID_Forward": 0,
+    "leftHook_PCM_ID_Reverse": 0,
+    "rightHook_PCM_ID_Forward": 1,
+    "rightHook_PCM_ID_Reverse": 0
   },
   "Intake": {
     "motorID": 17,
-    "pistonID1": 2,
-    "pistonID2": 3,
+    "pistonIDForward": 2,
+    "pistonIDReverse": 3,
     "inverted": false,
     "IntakeSpeed": 0.5
   },
@@ -75,7 +77,11 @@
     "ballClimberInverted": false,
     "shooterInverted": false
   },
-
+  "Camera": {
+    "Name": "PiCamera",
+    "cameraHeight": 100,
+    "targetHeight": 243.8
+  },
   "RobotDimensions": {
     "trackWidth": 36,
     "wheelBase": 48,
@@ -89,7 +95,9 @@
     "joystickDeadZones": {
       "xDeadZone": 0.1,
       "yDeadZone": 0.1,
-      "zDeadZone": 0.1
+      "zDeadZone": 0.1,
+      "armDeadZone": 0.1,
+      "winchDeadZone": 0.1
     },
     "flywheelTriggerThreshold": 0.25
   }

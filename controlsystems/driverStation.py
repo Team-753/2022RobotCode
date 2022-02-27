@@ -26,6 +26,8 @@ class driverStation:
             "toggleClimbMode": False,
             "releasePeterHooks": False,
             "tightenPeterHooks": False,
+            "moveArms": 0.0,
+            "moveWinches": 0.0,
             "intakeOn": False,
             "intakeOff": False,
             "resetDriveTrainEncoders": False,
@@ -34,6 +36,11 @@ class driverStation:
         
         
         switches["toggleClimbMode"] = self.checkClimbingModeToggle()
+        if switches["toggleClimbMode"]:
+            if self.climbModeActivated:
+                self.climbModeActivated = False
+            elif not self.climbModeActivated:
+                self.climbModeActivated = True
         
         if not self.climbModeActivated: # normal driving mode
             switches["driverX"] = self.driverInput.getLeftX()
@@ -57,6 +64,8 @@ class driverStation:
         else:
             if self.manualClimbing:
                 switches["releasePeterHooks"], switches["tightenPeterHooks"] = self.peterHooks()
+                switches["moveArms"] = self.driverInput.getLeftY()
+                switches["moveWinches"] = self.driverInput.getRightY()
 
         return switches
 

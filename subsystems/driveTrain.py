@@ -22,6 +22,8 @@ class driveTrain:
             swerveConfig = self.config["SwerveModules"][moduleName]
             self.swerveModules[moduleName] = swerveModule(swerveConfig["motor_ID_1"], swerveConfig["motor_ID_2"], swerveConfig["encoder_ID"], swerveConfig["encoderOffset"], moduleName)
             self.swerveModules[moduleName].initMotorEncoder()
+        
+        
         self.odometry = Odometry(self.swerveModules, self.navx, self.config)
         
         self.fLRotationVectorAngle = self.odometry.fLRotationVectorAngle
@@ -47,7 +49,6 @@ class driveTrain:
         NOTE: The final angle may be in unit circle degrees and not in normal oriented degrees this is most likely the problem if the drivetrain has a 90 degree offset
         '''
         
-        #The joystick's y axis is inverted for some reason
         angle = self.odometry.getRobotPose()[2]
         if self.fieldOrient:
             angle %= 360
@@ -120,6 +121,7 @@ class driveTrain:
         rearRightValues = self.swerveModules["rearRight"].returnValues()
         return frontLeftValues, frontRightValues, rearLeftValues, rearRightValues
     
+    
     def getFieldPosition(self):
         return self.odometry.getRobotPose()
     
@@ -128,3 +130,4 @@ class driveTrain:
     
     def resetOdometry(self):
         self.odometry.reset()
+    

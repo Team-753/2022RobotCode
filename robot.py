@@ -35,6 +35,7 @@ class MyRobot(wpilib.TimedRobot):
             self.config = json.load(f1)
         self.tower = Tower(self.config)
         self.intake = Intake(self.config)
+        self.climber = Climber(self.config)
         self.driverStation = driverStation(self.config)
         self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=100)
         self.navx.reset()
@@ -58,7 +59,8 @@ class MyRobot(wpilib.TimedRobot):
     def teleopPeriodic(self):
         '''This function is called periodically during operator control.'''
         switches = self.driverStation.checkSwitches()
-        switches["driverX"], switches["driverY"], switches["driverZ"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"]))
+        switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"]))
+        
         self.switchActions(switches)
         if self.DEBUGSTATEMENTS:
             smartDash.putNumber("Proximity Sensor", self.tower.getProximitySensor())
@@ -120,6 +122,15 @@ class MyRobot(wpilib.TimedRobot):
         if not self.intake.carWashDisabled:
             self.intake.carWashOn()
         
+        if self.driverStation.climbModeActivated:
+            self.climber.moveShoulders(switchDict["moveArms"])
+            self.climber.moveWinches(switchDict["moveWinches"])
+
+            if switchDict["releasePeterHooks"]:
+                self.climber.disengageHooks()
+            elif switchDict["tightenPeterHooks"]:
+                self.climber.engageHooks()
+        
     def evaluateDeadzones(self, inputs):
         adjustedInputs = []
         for idx, input in enumerate(inputs):
@@ -131,7 +142,7 @@ class MyRobot(wpilib.TimedRobot):
             else:
                 adjustedValue = 0
             adjustedInputs.append(adjustedValue)
-        return adjustedInputs[0], adjustedInputs[1], adjustedInputs[2]
+        return adjustedInputs
     
     def nonEmergencyStop(self):
         ''' Exactly as it says, stops all of the functions of the robot '''

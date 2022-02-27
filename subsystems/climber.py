@@ -1,5 +1,4 @@
 import math
-from turtle import speed
 import wpilib
 import ctre
 import rev
@@ -9,22 +8,22 @@ class Climber:
     def __init__(self, config: dict):
         self.config = config
         
-        leftShoulder = Shoulder(self.config["Climber"]["leftShoulder"]["ID"], self.config["Climber"]["leftShoulder"]["Name"])
-        rightShoulder = Shoulder(self.config["Climber"]["rightShoulder"]["ID"], self.config["Climber"]["rightShoulder"]["Name"])
+        self.leftShoulder = Shoulder(self.config["Climber"]["leftShoulder"]["ID"], self.config["Climber"]["leftShoulder"]["Name"])
+        self.rightShoulder = Shoulder(self.config["Climber"]["rightShoulder"]["ID"], self.config["Climber"]["rightShoulder"]["Name"])
+
+        self.leftWinch = Winch(self.config["Climber"]["leftWinch"]["ID"], self.config["Climber"]["leftWinch"]["Name"])
+        self.rightWinch = Winch(self.config["Climber"]["rightWinch"]["ID"], self.config["Climber"]["rightWinch"]["Name"])
+
+        self.leftArm = Arm(self.leftWinch, self.leftShoulder, self.config, True)
+        self.rightArm = Arm(self.rightWinch, self.rightShoulder, self.config, False)
         
-        leftWinch = Winch(self.config["Climber"]["leftWinch"]["ID"], self.config["Climber"]["leftWinch"]["Name"])
-        rightWinch = Winch(self.config["Climber"]["rightWinch"]["ID"], self.config["Climber"]["rightWinch"]["Name"])
-        
-        self.leftArm = Arm(leftWinch, leftShoulder, self.config, True)
-        self.rightArm = Arm(rightWinch, rightShoulder, self.config, False)
-        
-        self.leftHook = wpilib.Solenoid(self.config["Climber"]["leftHook_PCM_ID"])
-        self.rightHook = wpilib.Solenoid(self.config["Climber"]["rightHook_PCM_ID"])
+        self.leftHook = wpilib.DoubleSolenoid(0, wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["leftHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["leftHook_PCM_ID_Reverse"])
+        self.rightHook = wpilib.DoubleSolenoid(0, wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["rightHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["rightHook_PCM_ID_Reverse"])
 
         self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360) # TODO: change the number of wraps (third parameter) to whatever the amount actually is.
 
-        #self.shoulderPID = wpimath.controller.PIDController(self.config["Climber"]["shoulderPID"]["kP"], self.config["Climber"]["shoulderPID"]["kI"], self.config["Climber"]["shoulderPID"]["kD"])
-        #self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
+        self.shoulderPID = wpimath.controller.PIDController(self.config["Climber"]["shoulderPID"]["kP"], self.config["Climber"]["shoulderPID"]["kI"], self.config["Climber"]["shoulderPID"]["kD"])
+        self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
 
 
     def generateWinchList(self, axleRadius, strapThickness, numberOfWraps, detailPerRotation):
@@ -72,7 +71,7 @@ class Climber:
         self.leftWinch.motor.setSelectedSensorPosition(0)
         self.rightWinch.motor.setSelectedSensorPosition(0)
 
-    def setShoulderAngle(self, angle):
+    def setShoulderAngles(self, angle):
         self.shoulderPID.setSetpoint(angle)
         
         speed = self.shoulderPID.calculate(self.leftShoulder.getAngle())
@@ -91,18 +90,15 @@ class Climber:
         else:
             self.rightShoulder.brake()
     
-    def moveShoulder(self, speed):
-        if speed > 0:
-            self.leftShoulder.forward(speed)
-            self.rightShoulder.forward(speed)
-        elif speed < 0:
-            self.leftShoulder.backward(speed)
-            self.rightShoulder.backward(speed)
+    def moveShoulders(self, speed):
+        if abs(speed) > 0:
+            self.leftShoulder.move(speed)
+            self.rightShoulder.move(speed)
         else:
             self.leftShoulder.brake()
             self.rightShoulder.brake()
     
-    def setWinchPosition(self, position):
+    def setWinchPositions(self, position):
         self.winchPID.setSetpoint(position)
         
         speed = self.winchPID.calculate(self.leftWinch.getAngle())
@@ -121,31 +117,36 @@ class Climber:
         else:
             self.rightWinch.brake()
     
-    def moveWinch(self, speed):
-        if speed > 0:
-            self.leftWinch.forward(speed)
-            self.rightWinch.forward(speed)
-        elif speed < 0:
-            self.leftWinch.backward(speed)
-            self.rightWinch.backward(speed)
+    def moveWinches(self, speed):
+        if abs(speed) > 0:
+            self.leftWinch.move(speed)
+            self.rightWinch.move(speed)
         else:
             self.leftWinch.brake()
             self.rightWinch.brake()
 
     def extendArms(self):
         ''''''
+
     def firstBarGrab(self):
         ''''''
+
     def nextBarGrab(self):
         ''''''
+
     def pullArms(self):
         ''''''
+
     def detachArms(self):
         ''''''
+
     def engageHooks(self):
-        ''''''
+        self.leftHook.set(wpilib.DoubleSolenoid.Value.kForward)
+        self.rightHook.set(wpilib.DoubleSolenoid.Value.kForward)
+
     def disengageHooks(self):
-        ''''''
+        self.leftHook.set(wpilib.DoubleSolenoid.Value.kReverse)
+        self.rightHook.set(wpilib.DoubleSolenoid.Value.kReverse)
 
 class Arm:
     def __init__(self, winch, shoulder, config) -> None:
@@ -174,15 +175,18 @@ class Shoulder:
         else:
             self.motor.setInverted(False)
 
-    def forward(self, speed):
+    def move(self, speed):
         self.motor.set(speed)
-    
-    def backward(self, speed):
-        self.motor.set(speed)
-        if self.motor.getFault(rev.CANSparkMax.FaultID.kSoftLimitRev):
-            wpilib.SmartDashboard.putBool(self.name + " stopped", True)
+        
+        if self.motor.getFault(rev.CANSparkMax.FaultID.kSoftLimitFwd):
+            wpilib.SmartDashboard.putBool(self.name + " forward stop", True)
         else:
-            wpilib.SmartDashboard.putBool(self.name + " stopped", False)
+            wpilib.SmartDashboard.putBool(self.name + " forward stop", False)
+
+        if self.motor.getFault(rev.CANSparkMax.FaultID.kSoftLimitRev):
+            wpilib.SmartDashboard.putBool(self.name + " reverse stop", True)
+        else:
+            wpilib.SmartDashboard.putBool(self.name + " reverse stop", False)
     
     def getAngle(self):
         angle = (self.encoder.getPosition() * 8.571) + 30 # 30 represents the idle arm angle minumum
@@ -213,12 +217,15 @@ class Winch:
     def release(self, speed):
         self.motor.set(ctre.ControlMode.PercentOutput, speed)
 
-    def retract(self, speed):
-        self.motor.set(ctre.ControlMode.PercentOutput, speed)
-        if ctre.Faults.ReverseSoftLimit in self.motor.getFaults():
-            wpilib.SmartDashboard.putBool(self.name + " stopped", False)
+        if ctre.Faults.ForwardSoftLimit in self.motor.getFaults():
+            wpilib.SmartDashboard.putBool(self.name + " forward stop", False)
         else:
-            wpilib.SmartDashboard.putBool(self.name + " stopped", True)
+            wpilib.SmartDashboard.putBool(self.name + " forward stop", True)
+
+        if ctre.Faults.ReverseSoftLimit in self.motor.getFaults():
+            wpilib.SmartDashboard.putBool(self.name + " reverse stop", False)
+        else:
+            wpilib.SmartDashboard.putBool(self.name + " reverse stop", True)
     
     def reel(self, amount):
         if amount < 0:
