@@ -42,8 +42,13 @@ class MyRobot(wpilib.TimedRobot):
         self.driveTrain = driveTrain(self.config, self.navx)
         self.Timer = wpilib.Timer()
         self.DEBUGSTATEMENTS = False
+        smartDash.putBoolean("robotEnabled", False)
+        smartDash.putBoolean("aether", False)
         
+        self.climber.zeroEncoders()
         
+    def disabledExit(self) -> None:
+        smartDash.putBoolean("robotEnabled", True)
 
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
@@ -55,6 +60,7 @@ class MyRobot(wpilib.TimedRobot):
 
     def teleopInit(self):
         self.navx.reset() # NOTE: In production code get rid of this line (it will cause problems when autonomous moves the robot)
+        
         
     def teleopPeriodic(self):
         '''This function is called periodically during operator control.'''
@@ -107,8 +113,11 @@ class MyRobot(wpilib.TimedRobot):
             self.intake.carWashOff() 
             
         if switchDict["revShooter"]:
+            smartDash.putBoolean("aether", True)
+            
             self.tower.shoot(5000) # this is temporary until we can start getting vision data
         else:
+            smartDash.putBoolean("aether", False)
             self.tower.coastShooter()
             
         if switchDict["ballIndexerIn"]:
