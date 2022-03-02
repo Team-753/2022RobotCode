@@ -4,6 +4,7 @@ class driverStation:
     def __init__(self, config: dict):
         self.config = config
         self.driverInput = wpilib.XboxController(0)
+        self.auxiliaryInput = wpilib.XboxController(1)
         self.climbCheckOne = False
         self.climbCheckTwo = False
         self.climbCheckThree = False
@@ -48,7 +49,7 @@ class driverStation:
             switches["driverZ"] = self.driverInput.getRightX()
             if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
                 switches["swapFieldOrient"] = True
-            dPadState = self.driverInput.getPOV()
+            dPadState = self.auxiliaryInput.getPOV()
             if dPadState == 90:
                 switches["intakeUp"] = True
             elif dPadState == 270:
@@ -57,15 +58,15 @@ class driverStation:
                 switches["intakeOn"] = True
             elif dPadState == 180:
                 dPadState["intakeOff"] = True
-            if self.driverInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
+            if self.auxiliaryInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
                 switches["revShooter"] = True
-            switches["ballSystemOut"] = self.driverInput.getBButtonPressed()
-            switches["ballIndexerIn"] = self.driverInput.getRightBumperPressed()  #will do checks on this later ie: if flywheel is at sufficient rpm and such 
+            switches["ballSystemOut"] = self.auxiliaryInput.getBButtonPressed()
+            switches["ballIndexerIn"] = self.auxiliaryInput.getRightBumperPressed()  #will do checks on this later ie: if flywheel is at sufficient rpm and such 
         else:
             if self.manualClimbing:
                 switches["releasePeterHooks"], switches["tightenPeterHooks"] = self.peterHooks()
-                switches["moveArms"] = self.driverInput.getLeftY()
-                switches["moveWinches"] = self.driverInput.getRightY()
+                switches["moveArms"] = self.auxiliaryInput.getLeftY()
+                switches["moveWinches"] = self.auxiliaryInput.getRightY()
 
         return switches
 
@@ -78,13 +79,13 @@ class driverStation:
             self.peterHookCheckTighten += 1
         if self.peterHookCheckTighten > 50:
             self.peterHookCheckTighten = 0
-        if self.driverInput.getYButtonReleased():
+        if self.auxiliaryInput.getYButtonReleased():
             if self.peterHookCheckRelease == 0:
                 self.peterHookCheckRelease = 1
             elif self.peterHookCheckRelease > 0:
                 self.peterHookCheckRelease = 0
                 releasePeterHooks = True
-        if self.driverInput.getAButtonReleased():
+        if self.auxiliaryInput.getAButtonReleased():
             if self.peterHookCheckTighten == 0:
                 self.peterHookCheckTighten = 1
             elif self.peterHookCheckTighten > 0:
@@ -93,11 +94,11 @@ class driverStation:
         return(releasePeterHooks, tightenPeterHooks)
     
     def checkClimbingModeToggle(self):
-        if self.driverInput.getBackButtonPressed() and self.driverInput.getStartButtonPressed():
+        if self.auxiliaryInput.getBackButtonPressed() and self.auxiliaryInput.getStartButtonPressed():
             self.climbCheckOne = True
-        if self.driverInput.getBackButtonReleased() and self.climbCheckOne:
+        if self.auxiliaryInput.getBackButtonReleased() and self.climbCheckOne:
             self.climbCheckTwo = True
-        if self.driverInput.getStartButtonReleased() and self.climbCheckOne:
+        if self.auxiliaryInput.getStartButtonReleased() and self.climbCheckOne:
             self.climbCheckThree = True
         if self.climbCheckOne and self.climbCheckTwo and self.climbCheckThree:
             ''' So what is going on here you may ask? Essentially this is the toggle for the climbing mode activation.
