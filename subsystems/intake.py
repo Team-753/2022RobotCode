@@ -4,7 +4,7 @@ import rev
 class Intake:
     def __init__(self, config):
         self.carWash = rev.CANSparkMax(config["Intake"]["motorID"], rev._rev.CANSparkMaxLowLevel.MotorType.kBrushless)
-        self.lifter = wpilib.DoubleSolenoid(0, wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = config["Intake"]["pistonID1"], reverseChannel = config["Intake"]["pistonID2"])
+        self.lifter = wpilib.DoubleSolenoid(config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = config["Intake"]["pistonID1"], reverseChannel = config["Intake"]["pistonID2"])
         self.intakeSpeed = config["Intake"]["IntakeSpeed"]
         self.carWash.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
         self.carWashDisabled = True

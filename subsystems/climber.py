@@ -17,8 +17,8 @@ class Climber:
         self.leftArm = Arm(self.leftWinch, self.leftShoulder, self.config, True)
         self.rightArm = Arm(self.rightWinch, self.rightShoulder, self.config, False)
         
-        self.leftHook = wpilib.DoubleSolenoid(0, wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["leftHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["leftHook_PCM_ID_Reverse"])
-        self.rightHook = wpilib.DoubleSolenoid(0, wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["rightHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["rightHook_PCM_ID_Reverse"])
+        self.leftHook = wpilib.DoubleSolenoid(self.config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["leftHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["leftHook_PCM_ID_Reverse"])
+        self.rightHook = wpilib.DoubleSolenoid(self.config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["rightHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["rightHook_PCM_ID_Reverse"])
 
         self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360) # TODO: change the number of wraps (third parameter) to whatever the amount actually is.
 

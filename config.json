@@ -1,4 +1,5 @@
 {
+  "PCM": 61,
   "SwerveModules": {
     "frontLeft": {
       "motor_ID_1": 1,
@@ -57,14 +58,14 @@
     "winchCurrentLimit": 35,
     "winchStressedVelocityThreshold": 2,
     "leftHook_PCM_ID_Forward": 0,
-    "leftHook_PCM_ID_Reverse": 0,
-    "rightHook_PCM_ID_Forward": 1,
-    "rightHook_PCM_ID_Reverse": 0
+    "leftHook_PCM_ID_Reverse": 1,
+    "rightHook_PCM_ID_Forward": 2,
+    "rightHook_PCM_ID_Reverse": 3
   },
   "Intake": {
     "motorID": 17,
-    "pistonIDForward": 2,
-    "pistonIDReverse": 3,
+    "pistonIDForward": 4,
+    "pistonIDReverse": 5,
     "inverted": false,
     "IntakeSpeed": 0.5
   },
