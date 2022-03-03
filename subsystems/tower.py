@@ -43,8 +43,8 @@ class Tower:
         self.feederMotor.setNeutralMode(ctre.NeutralMode.Coast)
     
     def coastShooter(self):
-        self.shooterMotor.set(0)
         self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
+        self.shooterMotor.set(0)
         
     def brakeShooter(self):
         self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
@@ -77,6 +77,10 @@ class Tower:
     def reverse(self):
         self.setFeederSpeed(-self.feederSpeed)
         self.setBallClimberSpeed(-self.ballClimberSpeed)
+        
+    def indexer(self):
+        ''' The main function and logic that is run through when pressing the auxiliary index button '''
+        print(self.proximitySensor.getValue())
 
     def shoot(self, targetVelocity):
         '''Sets a target velocity for the shooter in RPM. 
