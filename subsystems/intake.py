@@ -4,12 +4,14 @@ import rev
 class Intake:
     def __init__(self, config):
         self.carWash = rev.CANSparkMax(config["Intake"]["motorID"], rev._rev.CANSparkMaxLowLevel.MotorType.kBrushless)
-        self.lifter = wpilib.DoubleSolenoid(config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = config["Intake"]["pistonID1"], reverseChannel = config["Intake"]["pistonID2"])
+        self.lifter = wpilib.DoubleSolenoid(config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = config["Intake"]["pistonIDForward"], reverseChannel = config["Intake"]["pistonIDReverse"])
         self.intakeSpeed = config["Intake"]["IntakeSpeed"]
         self.carWash.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
+        self.carWash.setInverted(config["Intake"]["inverted"])
         self.carWashDisabled = True
 
     def carWashOn(self):
+        print("intake on")
         self.carWash.set(self.intakeSpeed)
         self.carWashDisabled = False
         
@@ -18,6 +20,8 @@ class Intake:
         self.carWashDisabled = True
         
     def carWashOff(self):
+        print("intake off")
+        self.carWash.set(0)
         self.carWash.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
         self.carWashDisabled = True
 
@@ -27,9 +31,9 @@ class Intake:
         
     def setLifterDown(self):
         self.lifter.set(wpilib.DoubleSolenoid.Value.kForward)
-        self.carWashOn()
+        #self.carWashOn()
     
     def setLifterOff(self):
         self.lifter.set(wpilib.DoubleSolenoid.Value.kOff)
-        self.carWash.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
+        #self.carWash.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
 

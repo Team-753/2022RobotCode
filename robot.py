@@ -49,6 +49,11 @@ class MyRobot(wpilib.TimedRobot):
         
     def disabledExit(self) -> None:
         smartDash.putBoolean("robotEnabled", True)
+        
+    def disabledInit(self) -> None:
+        self.intake.carWashOff()
+        self.tower.towerCoast()
+        return super().disabledInit()
 
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
@@ -114,14 +119,15 @@ class MyRobot(wpilib.TimedRobot):
             
         if switchDict["revShooter"]:
             smartDash.putBoolean("aether", True)
-            
             self.tower.shoot(5000) # this is temporary until we can start getting vision data
         else:
             smartDash.putBoolean("aether", False)
             self.tower.coastShooter()
             
         if switchDict["ballIndexerIn"]:
-            self.tower.prepareBall()   
+            #self.tower.prepareBall() 
+            self.tower.runAllNoConsequences()  
+            print("no consequences")
         elif switchDict["ballSystemOut"]:
             self.tower.reverse()
             self.intake.carWashReverse()

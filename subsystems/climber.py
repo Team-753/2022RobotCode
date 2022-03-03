@@ -8,14 +8,14 @@ class Climber:
     def __init__(self, config: dict):
         self.config = config
         
-        self.leftShoulder = Shoulder(self.config["Climber"]["leftShoulder"]["ID"], self.config["Climber"]["leftShoulder"]["Name"])
-        self.rightShoulder = Shoulder(self.config["Climber"]["rightShoulder"]["ID"], self.config["Climber"]["rightShoulder"]["Name"])
+        self.leftShoulder = Shoulder(self.config["Climber"]["leftShoulder"]["ID"], self.config["Climber"]["leftShoulder"]["Name"], self.config)
+        self.rightShoulder = Shoulder(self.config["Climber"]["rightShoulder"]["ID"], self.config["Climber"]["rightShoulder"]["Name"], self.config)
 
-        self.leftWinch = Winch(self.config["Climber"]["leftWinch"]["ID"], self.config["Climber"]["leftWinch"]["Name"])
-        self.rightWinch = Winch(self.config["Climber"]["rightWinch"]["ID"], self.config["Climber"]["rightWinch"]["Name"])
+        self.leftWinch = Winch(self.config["Climber"]["leftWinch"]["ID"], self.config["Climber"]["leftWinch"]["Name"], self.config)
+        self.rightWinch = Winch(self.config["Climber"]["rightWinch"]["ID"], self.config["Climber"]["rightWinch"]["Name"], self.config)
 
-        self.leftArm = Arm(self.leftWinch, self.leftShoulder, self.config, True)
-        self.rightArm = Arm(self.rightWinch, self.rightShoulder, self.config, False)
+        self.leftArm = Arm(self.leftWinch, self.leftShoulder, self.config)
+        self.rightArm = Arm(self.rightWinch, self.rightShoulder, self.config)
         
         self.leftHook = wpilib.DoubleSolenoid(self.config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["leftHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["leftHook_PCM_ID_Reverse"])
         self.rightHook = wpilib.DoubleSolenoid(self.config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["rightHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["rightHook_PCM_ID_Reverse"])
@@ -199,6 +199,7 @@ class Shoulder:
 class Winch:
     '''The forward and backward directions need to be tested.'''
     def __init__(self, talonID, name, config):
+        self.config = config
         self.motor = ctre.TalonFX(talonID)
         self.currentLimit = config["Climber"]["winchCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["winchStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls

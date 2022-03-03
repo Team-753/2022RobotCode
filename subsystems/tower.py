@@ -7,9 +7,10 @@ class Tower:
     def __init__(self, config):
         self.shooterMotor = rev.CANSparkMax(config["Tower"]["shooterID"], rev._rev.CANSparkMaxLowLevel.MotorType.kBrushless)
         self.shooterEncoder = self.shooterMotor.getEncoder()
+        self.shooterMotor.setInverted(config["Tower"]["shooterInverted"])
 
         self.feederMotor = ctre.VictorSPX(config["Tower"]["towerFeederID"])
-        self.feederSpeed = 0.5
+        self.feederSpeed = 1
 
         self.ballClimberMotor = ctre.VictorSPX(config["Tower"]["ballClimberID"])
         self.ballClimberSpeed = 0.5
@@ -24,8 +25,8 @@ class Tower:
     
     def setShooterVelocity(self, velocity):
         '''Sets the RPM of the shooter flywheel.'''
-        self.PID.setSetpoint(self.shooterEncoder.getVelocity)
-        self.shooterMotor.set(self.PID.calculate(velocity))
+        self.PID.setSetpoint(velocity)
+        self.shooterMotor.set(self.PID.calculate(self.shooterEncoder.getVelocity()))
     
     def setFeederSpeed(self, speed):
         '''Sets the percent output of the tower's base feeder motor.'''
@@ -36,10 +37,13 @@ class Tower:
         self.feederMotor.setNeutralMode(ctre.NeutralMode.Brake)
     
     def towerCoast(self):
+        self.setFeederSpeed(0)
+        self.setBallClimberSpeed(0)
         self.ballClimberMotor.setNeutralMode(ctre.NeutralMode.Coast)
         self.feederMotor.setNeutralMode(ctre.NeutralMode.Coast)
     
     def coastShooter(self):
+        self.shooterMotor.set(0)
         self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
         
     def brakeShooter(self):
@@ -65,6 +69,10 @@ class Tower:
             self.setBallClimberSpeed(self.ballClimberSpeed)
         else:
             self.setBallClimberSpeed(0)
+            
+    def runAllNoConsequences(self):
+        self.setFeederSpeed(self.feederSpeed)
+        self.setBallClimberSpeed(self.ballClimberSpeed)
         
     def reverse(self):
         self.setFeederSpeed(-self.feederSpeed)

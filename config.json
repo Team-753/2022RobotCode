@@ -28,11 +28,11 @@
   },
   "Climber": {
     "leftShoulder": {
-      "ID": 15,
+      "ID": 20,
       "Name": "leftShoulder"
     },
     "rightShoulder": {
-      "ID": 16,
+      "ID": 21,
       "Name": "rightShoulder"
     },
     "shoulderPID": {
@@ -43,11 +43,11 @@
     "shoulderCurrentLimit": 35,
     "shoulderStressedVelocityThreshold": 2,
     "leftWinch": {
-      "ID": 13,
+      "ID": 18,
       "Name": "leftWinch"
     },
     "rightWinch": {
-      "ID": 14,
+      "ID": 17,
       "Name": "rightWinch"
     },
     "winchPID": {
@@ -63,20 +63,20 @@
     "rightHook_PCM_ID_Reverse": 3
   },
   "Intake": {
-    "motorID": 17,
+    "motorID": 16,
     "pistonIDForward": 4,
     "pistonIDReverse": 5,
-    "inverted": false,
+    "inverted": true,
     "IntakeSpeed": 0.5
   },
   "Tower": {
-    "towerFeederID": 18,
-    "ballClimberID": 19,
-    "shooterID": 20,
+    "towerFeederID": 13,
+    "ballClimberID": 14,
+    "shooterID": 19,
     "proximitySensorID": 0,
     "towerFeederInverted": false,
     "ballClimberInverted": false,
-    "shooterInverted": false
+    "shooterInverted": true
   },
   "Camera": {
     "Name": "PiCamera",
