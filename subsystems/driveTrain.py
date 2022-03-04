@@ -31,10 +31,7 @@ class driveTrain:
         self.rLRotationVectorAngle = self.odometry.rLRotationVectorAngle
         self.rRRotationVectorAngle = self.odometry.rRRotationVectorAngle
         
-        wpilib.SmartDashboard.putNumber("fLTangent", self.fLRotationVectorAngle)
-        wpilib.SmartDashboard.putNumber("fRTangent", self.fRRotationVectorAngle)
-        wpilib.SmartDashboard.putNumber("rLTangent", self.rLRotationVectorAngle)
-        wpilib.SmartDashboard.putNumber("rRTangent", self.rRRotationVectorAngle)
+        self.swerveSpeedFactor = self.config["RobotDefaultSettings"]["robotSpeedLimiter"]
 
 
     def rotateCartesianPlane(self, angle: float, x: float, y: float):
@@ -48,6 +45,7 @@ class driveTrain:
         First checking to see if it is field oriented and compensating for the navx angle if it is.
         NOTE: The final angle may be in unit circle degrees and not in normal oriented degrees this is most likely the problem if the drivetrain has a 90 degree offset
         '''
+        joystickX, joystickY = joystickX * self.swerveSpeedFactor, joystickY * self.swerveSpeedFactor
         
         angle = self.odometry.getRobotPose()[2]
         if self.fieldOrient:

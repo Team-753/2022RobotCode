@@ -4,7 +4,7 @@ class driverStation:
     def __init__(self, config: dict):
         self.config = config
         self.driverInput = wpilib.XboxController(0)
-        self.auxiliaryInput = self.driverInput #wpilib.XboxController(1)
+        self.auxiliaryInput = wpilib.XboxController(1)
         self.climbCheckOne = False
         self.climbCheckTwo = False
         self.climbCheckThree = False
@@ -18,6 +18,7 @@ class driverStation:
             "driverX": 0.0,
             "driverY": 0.0,
             "driverZ": 0.0,
+            "swerveAfterburners": False,
             "swapFieldOrient": False,
             "intakeUp": False,
             "intakeDown": False,
@@ -47,6 +48,7 @@ class driverStation:
             switches["driverX"] = -self.driverInput.getLeftX()
             switches["driverY"] = self.driverInput.getLeftY()
             switches["driverZ"] = self.driverInput.getRightX()
+            switches["swerveAfterburners"] = self.driverInput.getLeftBumper()
             if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
                 switches["swapFieldOrient"] = True
             dPadState = self.driverInput.getPOV()
@@ -58,13 +60,10 @@ class driverStation:
                 switches["intakeOn"] = True
             elif dPadState == 180:
                 switches["intakeOff"] = True
-                print("intake off")
             if self.auxiliaryInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
                 switches["revShooter"] = True
-                print(self.auxiliaryInput.getRightTriggerAxis())
             switches["ballSystemOut"] = self.auxiliaryInput.getBButton()
             switches["ballIndexerIn"] = self.auxiliaryInput.getRightBumper()  #will do checks on this later ie: if flywheel is at sufficient rpm and such
-            switches["releasePeterHooks"], switches["tightenPeterHooks"] = self.peterHooks() 
         else:
             if self.manualClimbing:
                 switches["releasePeterHooks"], switches["tightenPeterHooks"] = self.peterHooks()

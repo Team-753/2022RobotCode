@@ -67,7 +67,7 @@
     "pistonIDForward": 4,
     "pistonIDReverse": 5,
     "inverted": true,
-    "IntakeSpeed": 1.0
+    "IntakeSpeed": 0.65
   },
   "Tower": {
     "towerFeederID": 13,
@@ -84,13 +84,13 @@
     "targetHeight": 243.8
   },
   "RobotDimensions": {
-    "trackWidth": 36,
-    "wheelBase": 48,
+    "trackWidth": 25.5,
+    "wheelBase": 21.5,
     "wheelDiameter": 4
   },
   "RobotDefaultSettings": {
     "fieldOrient": false,
-    "easterEgg": "e"
+    "robotSpeedLimiter": 0.65
   },
   "driverStation": {
     "joystickDeadZones": {

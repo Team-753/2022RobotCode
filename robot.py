@@ -134,6 +134,10 @@ class MyRobot(wpilib.TimedRobot):
             
         if not self.intake.carWashDisabled:
             self.intake.carWashOn()
+        if switchDict["swerveAfterburners"]:
+            self.driveTrain.swerveSpeedFactor = 1
+        else:
+            self.driveTrain.swerveSpeedFactor = self.config["RobotDefaultSettings"]["robotSpeedLimiter"]
         
         if self.driverStation.climbModeActivated:
             self.climber.moveShoulders(switchDict["moveArms"])

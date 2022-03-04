@@ -21,7 +21,6 @@ class swerveModule:
         self.CPR = 2048
         self.turningGearRatio = 12.8 # The steering motor gear ratio
         self.drivingGearRatio = 8.14 # The driving motor gear ratio
-        self.speedLimitingFactor = 0.65
         self.moduleName = moduleName
         self.absoluteOffset = -absoluteOffset
         
@@ -68,7 +67,7 @@ class swerveModule:
         self.turnController.setSetpoint(angle)
         turnSpeed = self.turnController.calculate(motorPosition)
         self.turnMotor.set(ctre.ControlMode.PercentOutput, turnSpeed)
-        self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude * self.speedLimitingFactor)
+        self.driveMotor.set(ctre.ControlMode.PercentOutput, magnitude)
         
     def stationary(self):
         ''' Keeps the swerve module still. This implementation is pretty janky tbh '''
