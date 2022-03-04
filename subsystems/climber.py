@@ -20,50 +20,11 @@ class Climber:
         self.leftHook = wpilib.DoubleSolenoid(self.config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["leftHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["leftHook_PCM_ID_Reverse"])
         self.rightHook = wpilib.DoubleSolenoid(self.config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["rightHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["rightHook_PCM_ID_Reverse"])
 
-        self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360) # TODO: change the number of wraps (third parameter) to whatever the amount actually is.
+        #self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360) # TODO: change the number of wraps (third parameter) to whatever the amount actually is.
 
         self.shoulderPID = wpimath.controller.PIDController(self.config["Climber"]["shoulderPID"]["kP"], self.config["Climber"]["shoulderPID"]["kI"], self.config["Climber"]["shoulderPID"]["kD"])
         self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
 
-
-    def generateWinchList(self, axleRadius, strapThickness, numberOfWraps, detailPerRotation):
-        '''This generates a list of rotation amounts of the winch and their corresponding distance values that the winch lets out.'''
-        length = 0
-        aList = []
-        for i in range(0,numberOfWraps*detailPerRotation):
-            i /= detailPerRotation
-            currentRadius = math.ceil(numberOfWraps - i)*strapThickness + axleRadius
-            length += currentRadius*2*math.pi/detailPerRotation
-            aList.append((i, length))
-        return(aList)
-    
-    def winchRotationLookup(self, distance):
-        '''This finds the number of rotations you need the winch to do (approximately) based on a distance you want the winch to let out.'''
-        for i in self.winchRotationsToDistanceList:
-            if i[1] > distance:
-                index = self.winchRotationsToDistanceList.index(i)
-                break
-        a = self.winchRotationsToDistanceList[index - 1]
-        b = self.winchRotationsToDistanceList[index]
-        deltaDistance1 = b[1] - a[1]
-        deltaDistance2 = distance - a[1]
-        ratioDistance = deltaDistance2/deltaDistance1
-        deltaRotation = b[0] - a[0]
-        rotationValue = a[0] + (deltaRotation*ratioDistance)
-        return(rotationValue)
-
-    def getArmInverseKinematics(x, y):
-        '''This returns the angle of the shoulder and the length of strap let out of the winch based on the desired x and y position of the arm hook.'''
-        # TODO: Put these constants in the config file (because they might be wrong).
-        L1 = 11
-        L2 = 2.5
-        L3 = 16.5
-        L4 = math.hypot(L2, L3)
-        L6 = 3
-        theta = math.acos(x/(math.hypot(x,y))) - math.acos(((x**2)+(y**2)+(L1**2)-(L4**2))/(2*L1*math.hypot(x,y))) - (math.pi/4)
-        theta = theta * 180 / math.pi
-        L5 = math.hypot(x,(y-L6))
-        return(L5, theta)
 
     def zeroEncoders(self):
         self.leftShoulder.encoder.setPosition(0)
@@ -154,21 +115,36 @@ class Arm:
         self.shoulder = shoulder
         self.config = config
        
-    def calculateTarget(self, x, y):
-        lengthOne = 1
-        lengthFour = 1
-        lengthFive = math.sqrt((x**2) + (y**2))
-        shoulderTargetTheta = math.acos(x / lengthFive) - math.acos(((x**2) + (y**2) + (lengthOne**2) - (lengthFour**2))/(2 * lengthOne * lengthFive))
+    def getArmInverseKinematics(self, x, y):
+            '''This returns the angle of the shoulder and the length of strap let out of the winch based on the desired x and y position of the arm hook.'''
+            # TODO: Put these constants in the config file (because they might be wrong).
+            L1 = 11
+            L2 = 2.5
+            L3 = 16.5
+            L4 = math.hypot(L2, L3)
+            L6 = 3
+            theta = math.acos(x/(math.hypot(x,y))) - math.acos(((x**2)+(y**2)+(L1**2)-(L4**2))/(2*L1*math.hypot(x,y))) - (math.pi/4)
+            theta = theta * 180 / math.pi
+            L5 = math.hypot(x,(y-L6))
+            return(L5, theta)
+        
+    def moveTo(self, x, y):
+        L5, theta = self.getArmInverseKinematics(x, y)
+        self.winch.reel(L5)
+        self.shoulder.setAngle(theta)
 
 class Shoulder:
     '''The forward and backward directions need to be tested.'''
     def __init__(self, sparkID, name, config):
         self.motor = rev.CANSparkMax(sparkID, rev.CANSparkMax.MotorType.kBrushless)
+        self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
         self.currentLimit = config["Climber"]["shoulderCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["shoulderStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
         self.encoder = self.motor.getEncoder()
-        self.motor.FaultID.kSoftLimitRev = 5 # This is in rotations (with a 100 to 1 gear ratio), and prevents backwards movement beyond the specified encoder value
-        self.motor.FaultID.kSoftLimitFwd = 60
+        #self.motor.FaultID.kSoftLimitRev = 5 # This is in rotations (with a 100 to 1 gear ratio), and prevents backwards movement beyond the specified encoder value
+        #self.motor.FaultID.kSoftLimitFwd = 60
+        self.shoulderPID = wpimath.controller.PIDController(0.005, 0, 0)
+        self.shoulderPID.setTolerance(1, 1)
         self.name = name
         if self.name == "leftShoulder":
             self.motor.setInverted(True)
@@ -187,14 +163,33 @@ class Shoulder:
             wpilib.SmartDashboard.putBool(self.name + " reverse stop", True)
         else:
             wpilib.SmartDashboard.putBool(self.name + " reverse stop", False)
+            
+    def setAngle(self, angle):
+        if angle < 30:
+            self.motor.set(0)
+            self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
+        if angle > 180:
+            self.motor.set(0)
+            self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
+        if self.shoulderPID.atSetpoint():
+            self.motor.set(0)
+            self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
+        else:
+            self.shoulderPID.setSetpoint(angle)
+            speed = self.shoulderPID.calculate(self.getAngle())
+            self.motor.set(speed)
     
     def getAngle(self):
-        angle = (self.encoder.getPosition() * 8.571) + 30 # 30 represents the idle arm angle minumum
+        angle = ((self.encoder.getPosition() * (360 / 42)) / 100) + 30 # 30 represents the idle arm angle minumum
         return(angle)
     
     def brake(self):
         self.motor.set(0)
         self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
+        
+    def coast(self):
+        self.motor.set(0)
+        self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
 
 class Winch:
     '''The forward and backward directions need to be tested.'''
@@ -214,6 +209,32 @@ class Winch:
         else:
             self.motor.setInverted(False)
         self.brake()
+        length = 0
+        self.winchRotationsToDistanceList = []
+        numberOfWraps = 0
+        detailPerRotation = 0
+        strapThickness = 0
+        axleRadius = 0.5
+        for i in range(0,numberOfWraps*detailPerRotation):
+            i /= detailPerRotation
+            currentRadius = math.ceil(numberOfWraps - i)*strapThickness + axleRadius
+            length += currentRadius*2*math.pi/detailPerRotation
+            self.winchRotationsToDistanceList.append((i, length))
+    
+    def winchRotationLookup(self, distance):
+        '''This finds the number of rotations you need the winch to do (approximately) based on a distance you want the winch to let out.'''
+        for i in self.winchRotationsToDistanceList:
+            if i[1] > distance:
+                index = self.winchRotationsToDistanceList.index(i)
+                break
+        a = self.winchRotationsToDistanceList[index - 1]
+        b = self.winchRotationsToDistanceList[index]
+        deltaDistance1 = b[1] - a[1]
+        deltaDistance2 = distance - a[1]
+        ratioDistance = deltaDistance2/deltaDistance1
+        deltaRotation = b[0] - a[0]
+        rotationValue = a[0] + (deltaRotation*ratioDistance)
+        return(rotationValue)
 
     def release(self, speed):
         self.motor.set(ctre.ControlMode.PercentOutput, speed)
@@ -233,8 +254,9 @@ class Winch:
             print("Cannot Retract Winch That Far!")
             self.brake()
         else:
-            self.winchPID.setSetpoint(amount)
-            motorSpeed = self.winchPID.calculate(self.getWinchLength())
+            rotationTarget = self.winchRotationLookup(amount)
+            self.winchPID.setSetpoint(rotationTarget)
+            motorSpeed = self.winchPID.calculate(self.winchRotationLookup(self.getWinchLength()))
             if self.winchPID.atSetpoint():
                 self.brake()
             else:   

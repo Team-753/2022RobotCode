@@ -60,8 +60,12 @@ class Tower:
     def getBallDetected(self):
         '''This will return True or False (ball or no ball) when I figure out what the sensor values are.'''
         value = self.proximitySensor.getValue()
-        wpilib.SmartDashboard.putNumber("Proximity Sensor", value)
-        return(False)
+        if value > 1800:
+            ballAtTop = True
+        else:
+            ballAtTop = False
+        wpilib.SmartDashboard.putBoolean("Ball At Top", ballAtTop)
+        return ballAtTop
     
     def prepareBall(self):
         self.setFeederSpeed(self.feederSpeed)
@@ -77,10 +81,20 @@ class Tower:
     def reverse(self):
         self.setFeederSpeed(-self.feederSpeed)
         self.setBallClimberSpeed(-self.ballClimberSpeed)
-        
+    
+    def flywheelUpToSpeed(self):
+        return False
+    
     def indexer(self):
         ''' The main function and logic that is run through when pressing the auxiliary index button '''
-        print(self.proximitySensor.getValue())
+        if self.flywheelUpToSpeed():
+            self.runAllNoConsequences()
+        elif self.getBallDetected():
+            self.setFeederSpeed(self.feederSpeed)
+        else:
+            print("indexing all")
+            self.setBallClimberSpeed(self.ballClimberSpeed)
+            self.setFeederSpeed(self.feederSpeed)  
 
     def shoot(self, targetVelocity):
         '''Sets a target velocity for the shooter in RPM. 

@@ -41,7 +41,7 @@ class MyRobot(wpilib.TimedRobot):
         self.navx.reset()
         self.driveTrain = driveTrain(self.config, self.navx)
         self.Timer = wpilib.Timer()
-        self.DEBUGSTATEMENTS = False
+        self.DEBUGSTATEMENTS = True
         smartDash.putBoolean("robotEnabled", False)
         smartDash.putBoolean("aether", False)
         
@@ -73,17 +73,16 @@ class MyRobot(wpilib.TimedRobot):
         switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"]))
         
         self.switchActions(switches)
-        if self.DEBUGSTATEMENTS:
-            smartDash.putNumber("Proximity Sensor", self.tower.getProximitySensor())
         
     def disabledPeriodic(self):
         ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
         if self.DEBUGSTATEMENTS:
-            vals = self.driveTrain.refreshValues()
+            '''vals = self.driveTrain.refreshValues()
             smartDash.putNumber("FrontLeftAbs", vals[0][3])
             smartDash.putNumber("FrontRightAbs", vals[1][3])
             smartDash.putNumber("RearLeftAbs", vals[2][3])
-            smartDash.putNumber("RearRightAbs", vals[3][3])
+            smartDash.putNumber("RearRightAbs", vals[3][3])'''
+            self.tower.getBallDetected()
     
     def disabledInit(self) -> None:
         self.driveTrain.coast()
@@ -94,7 +93,7 @@ class MyRobot(wpilib.TimedRobot):
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''
         if switchDict["driverX"] != 0 or switchDict["driverY"] != 0 or switchDict["driverZ"] != 0:
-            self.driveTrain.manualMove(switchDict["driverX"], switchDict["driverY"], switchDict["driverZ"], switchDict["navxAngle"])
+            self.driveTrain.move(switchDict["driverX"], switchDict["driverY"], switchDict["driverZ"], switchDict["navxAngle"])
         else:
             self.driveTrain.stationary()
             
@@ -126,8 +125,7 @@ class MyRobot(wpilib.TimedRobot):
             
         if switchDict["ballIndexerIn"]:
             #self.tower.prepareBall() 
-            self.tower.runAllNoConsequences()  
-            print("no consequences")
+            self.tower.indexer()
         elif switchDict["ballSystemOut"]:
             self.tower.reverse()
             self.intake.carWashReverse()

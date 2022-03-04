@@ -4,7 +4,7 @@ class driverStation:
     def __init__(self, config: dict):
         self.config = config
         self.driverInput = wpilib.XboxController(0)
-        self.auxiliaryInput = wpilib.XboxController(1)
+        self.auxiliaryInput = self.driverInput #wpilib.XboxController(1)
         self.climbCheckOne = False
         self.climbCheckTwo = False
         self.climbCheckThree = False
