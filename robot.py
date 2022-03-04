@@ -38,7 +38,7 @@ class MyRobot(wpilib.TimedRobot):
         self.climber = Climber(self.config)
         self.driverStation = driverStation(self.config)
         self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=100)
-        self.navx.reset()
+        # self.navx.reset()
         self.driveTrain = driveTrain(self.config, self.navx)
         self.Timer = wpilib.Timer()
         self.DEBUGSTATEMENTS = True
@@ -93,7 +93,7 @@ class MyRobot(wpilib.TimedRobot):
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''
         if switchDict["driverX"] != 0 or switchDict["driverY"] != 0 or switchDict["driverZ"] != 0:
-            self.driveTrain.move(switchDict["driverX"], switchDict["driverY"], switchDict["driverZ"], switchDict["navxAngle"])
+            self.driveTrain.move(switchDict["driverX"], switchDict["driverY"], switchDict["driverZ"])
         else:
             self.driveTrain.stationary()
             

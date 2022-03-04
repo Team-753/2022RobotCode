@@ -21,7 +21,7 @@ class swerveModule:
         self.CPR = 2048
         self.turningGearRatio = 12.8 # The steering motor gear ratio
         self.drivingGearRatio = 8.14 # The driving motor gear ratio
-        self.speedLimitingFactor = 1
+        self.speedLimitingFactor = 0.65
         self.moduleName = moduleName
         self.absoluteOffset = -absoluteOffset
         

@@ -67,7 +67,7 @@
     "pistonIDForward": 4,
     "pistonIDReverse": 5,
     "inverted": true,
-    "IntakeSpeed": 0.5
+    "IntakeSpeed": 1.0
   },
   "Tower": {
     "towerFeederID": 13,
@@ -89,7 +89,7 @@
     "wheelDiameter": 4
   },
   "RobotDefaultSettings": {
-    "fieldOrient": true,
+    "fieldOrient": false,
     "easterEgg": "e"
   },
   "driverStation": {

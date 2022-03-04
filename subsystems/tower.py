@@ -1,3 +1,4 @@
+from operator import truediv
 import wpilib
 import rev
 import ctre
@@ -25,8 +26,9 @@ class Tower:
     
     def setShooterVelocity(self, velocity):
         '''Sets the RPM of the shooter flywheel.'''
-        self.PID.setSetpoint(velocity)
-        self.shooterMotor.set(self.PID.calculate(self.shooterEncoder.getVelocity()))
+        '''self.PID.setSetpoint(velocity)
+        self.shooterMotor.set(self.PID.calculate(self.shooterEncoder.getVelocity()))'''
+        self.shooterMotor.set(1)
     
     def setFeederSpeed(self, speed):
         '''Sets the percent output of the tower's base feeder motor.'''
@@ -55,15 +57,18 @@ class Tower:
     
     def getShooterVelocity(self):
         '''Returns velocity in RPM.'''
-        return(self.shooterEncoder.getVelocity())
+        velocity = self.shooterEncoder.getVelocity()
+        wpilib.SmartDashboard.putNumber("Flywheel Velocity", velocity)
+        return(velocity)
     
     def getBallDetected(self):
         '''This will return True or False (ball or no ball) when I figure out what the sensor values are.'''
         value = self.proximitySensor.getValue()
-        if value > 1800:
+        if value > 1000:
             ballAtTop = True
         else:
             ballAtTop = False
+        wpilib.SmartDashboard.putNumber("distance sensor", value)
         wpilib.SmartDashboard.putBoolean("Ball At Top", ballAtTop)
         return ballAtTop
     
@@ -83,7 +88,10 @@ class Tower:
         self.setBallClimberSpeed(-self.ballClimberSpeed)
     
     def flywheelUpToSpeed(self):
-        return False
+        if self.getShooterVelocity() > 4800:
+            return True
+        else:
+            return False
     
     def indexer(self):
         ''' The main function and logic that is run through when pressing the auxiliary index button '''

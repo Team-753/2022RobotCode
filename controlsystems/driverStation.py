@@ -44,7 +44,7 @@ class driverStation:
                 self.climbModeActivated = True
         
         if not self.climbModeActivated: # normal driving mode
-            switches["driverX"] = self.driverInput.getLeftX()
+            switches["driverX"] = -self.driverInput.getLeftX()
             switches["driverY"] = self.driverInput.getLeftY()
             switches["driverZ"] = self.driverInput.getRightX()
             if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
