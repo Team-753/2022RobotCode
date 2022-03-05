@@ -105,16 +105,20 @@ class MyRobot(wpilib.TimedRobot):
             self.driveTrain.reInitiateMotorEncoders()
             
         if switchDict["intakeUp"]:
-            self.intake.setLifterUp()
+            self.tower.updateP(0.0005)
+            #self.intake.setLifterUp()
             
         if switchDict["intakeDown"]:
-            self.intake.setLifterDown()
+            #self.intake.setLifterDown()
+            self.tower.updateP(-0.0005)
             
         if switchDict["intakeOn"]:
-            self.intake.carWashOn()
+            #self.intake.carWashOn()
+            self.tower.updateI(0.0005)
             
         if switchDict["intakeOff"]:
-            self.intake.carWashOff() 
+            #self.intake.carWashOff()
+            self.tower.updateI(-0.0005)
             
         if switchDict["revShooter"]:
             smartDash.putBoolean("aether", True)

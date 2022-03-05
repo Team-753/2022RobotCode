@@ -47,11 +47,11 @@ class driverStation:
         if not self.climbModeActivated: # normal driving mode
             switches["driverX"] = -self.driverInput.getLeftX()
             switches["driverY"] = self.driverInput.getLeftY()
-            switches["driverZ"] = self.driverInput.getRightX()
+            switches["driverZ"] = self.driverInput.getRightTriggerAxis() - self.driverInput.getLeftTriggerAxis()
             switches["swerveAfterburners"] = self.driverInput.getLeftBumper()
             if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
                 switches["swapFieldOrient"] = True
-            dPadState = self.driverInput.getPOV()
+            dPadState = self.auxiliaryInput.getPOV()
             if dPadState == 90:
                 switches["intakeUp"] = True
             elif dPadState == 270:

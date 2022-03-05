@@ -19,16 +19,22 @@ class Tower:
         self.proximitySensor = wpilib.AnalogInput(config["Tower"]["proximitySensorID"])
 
         self.PIDTolerance = 42
-        self.kP = 0.005
-        self.kI = 0
+        self.kP = 0.0001
+        self.kI = 0.0
         self.kD = 0
-        self.PID = wpimath.controller.PIDController(self.kP, self.kI, self.kD)
+        self.PID = self.shooterMotor.getPIDController()
+        self.PID.setP(self.kP)
+        self.PID.setI(self.kI)
+        self.PID.setD(self.kD)
     
     def setShooterVelocity(self, velocity):
         '''Sets the RPM of the shooter flywheel.'''
-        '''self.PID.setSetpoint(velocity)
-        self.shooterMotor.set(self.PID.calculate(self.shooterEncoder.getVelocity()))'''
-        self.shooterMotor.set(1)
+        self.kI = wpilib.SmartDashboard.getNumber("iVal", 0)
+        self.kP = wpilib.SmartDashboard.getNumber("pVal", 0)
+        self.PID.setI(self.kI)
+        self.PID.setP(self.kP)
+        self.PID.setSetpoint(velocity)
+        self.shooterMotor.set(self.PID.calculate(self.shooterEncoder.getVelocity()))
     
     def setFeederSpeed(self, speed):
         '''Sets the percent output of the tower's base feeder motor.'''
