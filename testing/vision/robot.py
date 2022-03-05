@@ -34,6 +34,7 @@ class MyRobot(wpilib.TimedRobot):
     
     def autonomousInit(self) -> None:
         sd.putBoolean("aether", True)
+        sd.putBoolean("robotEnabled", True)
         return super().autonomousInit()
 
 if __name__ == "__main__":
