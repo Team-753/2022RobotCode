@@ -11,6 +11,7 @@ from subsystems.climber import Climber
 from subsystems.intake import Intake
 from subsystems.driveTrain import driveTrain
 from subsystems.tower import Tower
+from subsystems.vision import Vision
 
 cond = threading.Condition()
 notified = False
@@ -37,8 +38,8 @@ class MyRobot(wpilib.TimedRobot):
         self.intake = Intake(self.config)
         self.climber = Climber(self.config)
         self.driverStation = driverStation(self.config)
+        self.vision = Vision(self.config)
         self.navx = navx.AHRS(wpilib._wpilib.I2C.Port.kOnboard, update_rate_hz=100)
-        # self.navx.reset()
         self.driveTrain = driveTrain(self.config, self.navx)
         self.Timer = wpilib.Timer()
         self.DEBUGSTATEMENTS = True
@@ -47,21 +48,51 @@ class MyRobot(wpilib.TimedRobot):
         
         self.climber.zeroEncoders()
         
+        self.autonomousSwitches = {
+            "intakeOn": self.intake.carWashOn(),
+            "intakeOff": self.intake.carWashOff(),
+            "intakeReverse": self.intake.carWashReverse(),
+            "lowerIntake": self.intake.setLifterDown(),
+            "raiseIntake": self.intake.setLifterUp(),
+            "revShooter": self.smartAutoShooter(), # TODO: Change this later if not using vision maybe make a self variable that can be passed in to guage the distance to the hub
+            "visionOn": self.vision.searchAndDestroy(),
+            "visionOff": self.vision.visionOff(),
+            "coastShooter": self.tower.coastShooter(),
+            "indexBall": self.tower.indexer(),
+            "coastBallPath": self.tower.towerCoast()
+        }
+        
     def disabledExit(self) -> None:
         smartDash.putBoolean("robotEnabled", True)
+        
         
     def disabledInit(self) -> None:
         self.intake.carWashOff()
         self.tower.towerCoast()
+        self.driveTrain.coast()
+        smartDash.putBoolean("robotEnabled", False)
+        smartDash.putBoolean("aether", False)
         return super().disabledInit()
 
+    def smartAutoShooter(self):
+        self.revvingShooter = not(self.revvingShooter)
+    
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
-        pass
+        self.revvingShooter = False
+        self.navx.reset()
+        self.auto = Autonomous(wpilib.SmartDashboard.getString("Play of the Game", "default"), self.navx)
 
     def autonomousPeriodic(self):
         '''This function is called periodically during autonomous.'''
-        pass
+        self.driveTrain.updateOdometry()
+        pose = self.driveTrain.getFieldPosition()
+        x, y, z, switches = self.auto.periodic(pose)
+        if x == 0 and y == 0 and z ==0:
+            self.driveTrain.stationary()
+        else:
+            self.driveTrain.move(x, y, z)
+        
 
     def teleopInit(self):
         self.navx.reset() # NOTE: In production code get rid of this line (it will cause problems when autonomous moves the robot)
@@ -105,20 +136,17 @@ class MyRobot(wpilib.TimedRobot):
             self.driveTrain.reInitiateMotorEncoders()
             
         if switchDict["intakeUp"]:
-            self.tower.updateP(0.0005)
-            #self.intake.setLifterUp()
+            self.intake.setLifterUp()
             
         if switchDict["intakeDown"]:
-            #self.intake.setLifterDown()
-            self.tower.updateP(-0.0005)
+            self.intake.setLifterDown()
             
         if switchDict["intakeOn"]:
-            #self.intake.carWashOn()
-            self.tower.updateI(0.0005)
-            
-        if switchDict["intakeOff"]:
-            #self.intake.carWashOff()
-            self.tower.updateI(-0.0005)
+            self.intake.carWashOn()
+        elif switchDict["ballSystemOut"]:
+            self.intake.carWashReverse()
+        else:
+            self.intake.carWashOff()
             
         if switchDict["revShooter"]:
             smartDash.putBoolean("aether", True)
@@ -132,7 +160,6 @@ class MyRobot(wpilib.TimedRobot):
             self.tower.indexer()
         elif switchDict["ballSystemOut"]:
             self.tower.reverse()
-            self.intake.carWashReverse()
         else:
             self.tower.towerCoast()
             
@@ -151,7 +178,7 @@ class MyRobot(wpilib.TimedRobot):
                 self.climber.disengageHooks()
             elif switchDict["tightenPeterHooks"]:
                 self.climber.engageHooks()
-        
+    
     def evaluateDeadzones(self, inputs):
         adjustedInputs = []
         for idx, input in enumerate(inputs):

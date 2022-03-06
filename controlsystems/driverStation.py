@@ -31,7 +31,6 @@ class driverStation:
             "moveArms": 0.0,
             "moveWinches": 0.0,
             "intakeOn": False,
-            "intakeOff": False,
             "resetDriveTrainEncoders": False,
             "macros": {}
         }
@@ -53,15 +52,17 @@ class driverStation:
                 switches["swapFieldOrient"] = True
             dPadState = self.auxiliaryInput.getPOV()
             if dPadState == 90:
-                switches["intakeUp"] = True
+                pass
             elif dPadState == 270:
-                switches["intakeDown"] = True
+                pass
             elif dPadState == 0:
-                switches["intakeOn"] = True
+                switches["intakeUp"] = True
             elif dPadState == 180:
-                switches["intakeOff"] = True
+                switches["intakeDown"] = True
             if self.auxiliaryInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
                 switches["revShooter"] = True
+            if self.auxiliaryInput.getLeftBumper():
+                switches["intakeOn"] = True
             switches["ballSystemOut"] = self.auxiliaryInput.getBButton()
             switches["ballIndexerIn"] = self.auxiliaryInput.getRightBumper()  #will do checks on this later ie: if flywheel is at sufficient rpm and such
         else:

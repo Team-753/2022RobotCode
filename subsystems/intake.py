@@ -8,22 +8,16 @@ class Intake:
         self.intakeSpeed = config["Intake"]["IntakeSpeed"]
         self.carWash.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
         self.carWash.setInverted(config["Intake"]["inverted"])
-        self.carWashDisabled = True
 
     def carWashOn(self):
-        print("intake on")
         self.carWash.set(self.intakeSpeed)
-        self.carWashDisabled = False
         
     def carWashReverse(self):
         self.carWash.set(-self.intakeSpeed)
-        self.carWashDisabled = True
         
     def carWashOff(self):
-        print("intake off")
         self.carWash.set(0)
         self.carWash.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
-        self.carWashDisabled = True
 
     def setLifterUp(self):
         self.lifter.set(wpilib.DoubleSolenoid.Value.kReverse)

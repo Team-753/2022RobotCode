@@ -16,8 +16,8 @@ class Odometry:
         self.previousAngle = self.navx.getAngle()
         self.previousTime = time.time()
         
-        self.displacementX = 0
-        self.displacementY = 0
+        self.displacementX = 0.0
+        self.displacementY = 0.0
         
         self.trackWidth = self.config["RobotDimensions"]["trackWidth"] * 0.0254 # Converted from inches to meters
         self.wheelBase = self.config["RobotDimensions"]["wheelBase"] * 0.0254 # Converted from inches to meters

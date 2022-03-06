@@ -29,16 +29,15 @@ class Tower:
     
     def setShooterVelocity(self, velocity):
         '''Sets the RPM of the shooter flywheel.'''
-        self.kI = wpilib.SmartDashboard.getNumber("iVal", 0)
-        self.kP = wpilib.SmartDashboard.getNumber("pVal", 0)
-        self.PID.setI(self.kI)
-        self.PID.setP(self.kP)
         self.PID.setSetpoint(velocity)
         self.shooterMotor.set(self.PID.calculate(self.shooterEncoder.getVelocity()))
     
     def setFeederSpeed(self, speed):
         '''Sets the percent output of the tower's base feeder motor.'''
         self.feederMotor.set(ctre.ControlMode.PercentOutput, speed)
+    
+    def shootDistance(self, distanceToShoot):
+        ''' Use a lookup table to guage distance '''
     
     def towerBrake(self):
         self.ballClimberMotor.setNeutralMode(ctre.NeutralMode.Brake)

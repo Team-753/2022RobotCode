@@ -11,3 +11,9 @@ class Vision:
         if result.hasTargets():
             corners = result.getBestTarget().getCorners()
         return(corners)
+    
+    def searchAndDestroy(self):
+        pass
+    
+    def visionOff(self):
+        pass
