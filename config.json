@@ -60,7 +60,13 @@
     "leftHook_PCM_ID_Forward": 0,
     "leftHook_PCM_ID_Reverse": 1,
     "rightHook_PCM_ID_Forward": 2,
-    "rightHook_PCM_ID_Reverse": 3
+    "rightHook_PCM_ID_Reverse": 3,
+    "Arm_Dimensions": {
+      "Arm": 11,
+      "Forearm1": 2.5,
+      "Forearm2": 16.5,
+      "PulleyJointDifference": 3
+    }
   },
   "Intake": {
     "motorID": 16,

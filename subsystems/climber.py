@@ -22,69 +22,35 @@ class Climber:
 
         #self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360) # TODO: change the number of wraps (third parameter) to whatever the amount actually is.
 
-        self.shoulderPID = wpimath.controller.PIDController(self.config["Climber"]["shoulderPID"]["kP"], self.config["Climber"]["shoulderPID"]["kI"], self.config["Climber"]["shoulderPID"]["kD"])
-        self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
-
-
-    def zeroEncoders(self):
-        self.leftShoulder.encoder.setPosition(0)
-        self.rightShoulder.encoder.setPosition(0)
-        self.leftWinch.motor.setSelectedSensorPosition(0)
-        self.rightWinch.motor.setSelectedSensorPosition(0)
-
-    def setShoulderAngles(self, angle):
-        self.shoulderPID.setSetpoint(angle)
-        
-        speed = self.shoulderPID.calculate(self.leftShoulder.getAngle())
-        if speed > 0:
-            self.leftShoulder.forward(speed)
-        elif speed < 0:
-            self.leftShoulder.backward(speed)
-        else:
-            self.leftShoulder.brake()
-        
-        speed = self.shoulderPID.calculate(self.rightShoulder.getAngle())
-        if speed > 0:
-            self.rightShoulder.forward(speed)
-        elif speed < 0:
-            self.rightShoulder.backward(speed)
-        else:
-            self.rightShoulder.brake()
+    def moveWinches(self, speed):
+        self.leftArm.moveWinch(speed)
+        self.rightArm.moveWinch(speed)
     
     def moveShoulders(self, speed):
-        if abs(speed) > 0:
-            self.leftShoulder.move(speed)
-            self.rightShoulder.move(speed)
-        else:
-            self.leftShoulder.brake()
-            self.rightShoulder.brake()
-    
-    def setWinchPositions(self, position):
-        self.winchPID.setSetpoint(position)
+        self.leftArm.moveShoulder(speed)
+        self.rightArm.moveShoulder(speed)
         
-        speed = self.winchPID.calculate(self.leftWinch.getAngle())
-        if speed > 0:
-            self.leftWinch.forward(speed)
-        elif speed < 0:
-            self.leftWinch.backward(speed)
-        else:
-            self.leftWinch.brake()
-        
-        speed = self.winchPID.calculate(self.rightWinch.getAngle())
-        if speed > 0:
-            self.rightWinch.forward(speed)
-        elif speed < 0:
-            self.rightWinch.backward(speed)
-        else:
-            self.rightWinch.brake()
+    def setArms(self, x, y):
+        self.leftArm.moveTo(x, y)
+        self.rightArm.moveTo(x, y)
+
+    def coastArms(self):
+        self.leftArm.coast()
+        self.rightArm.coast()
     
-    def moveWinches(self, speed):
-        if abs(speed) > 0:
-            self.leftWinch.move(speed)
-            self.rightWinch.move(speed)
-        else:
-            self.leftWinch.brake()
-            self.rightWinch.brake()
+    def brakeArms(self):
+        self.leftArm.brake()
+        self.rightArm.brake()
+    
+    def getArmPositions(self):
+        wpilib.SmartDashboard.putNumber("Left Arm X", self.leftArm.getArmInverseKinematics(self.leftArm.winch.getWinchLength(), self.leftArm.shoulder.getAngle())[0])
+        wpilib.SmartDashboard.putNumber("Right Arm X", self.rightArm.getArmInverseKinematics(self.rightArm.winch.getWinchLength(), self.rightArm.shoulder.getAngle())[0])
+        wpilib.SmartDashboard.putNumber("Left Arm Y", self.leftArm.getArmInverseKinematics(self.leftArm.winch.getWinchLength(), self.leftArm.shoulder.getAngle())[1])
+        wpilib.SmartDashboard.putNumber("Right Arm Y", self.rightArm.getArmInverseKinematics(self.rightArm.winch.getWinchLength(), self.rightArm.shoulder.getAngle())[1])
+        wpilib.SmartDashboard.putNumber("Left Arm Winch Length", self.leftArm.winch.getWinchLength())
+        wpilib.SmartDashboard.putNumber("Left Arm Shoulder Angle", self.leftArm.shoulder.getAngle())
+        wpilib.SmartDashboard.putNumber("Right Arm Winch Length", self.rightArm.winch.getWinchLength())
+        wpilib.SmartDashboard.putNumber("Right Arm Shoulder Angle", self.rightArm.shoulder.getAngle())
 
     def extendArms(self):
         ''''''
@@ -114,24 +80,82 @@ class Arm:
         self.winch = winch
         self.shoulder = shoulder
         self.config = config
-       
+        self.armLength = self.config["Climber"]["Arm_Dimensions"]["Arm"]
+        self.forearmLength = math.hypot(self.config["Climber"]["Arm_Dimensions"]["Forearm1"], self.config["Climber"]["Arm_Dimensions"]["Forearm2"])
+        self.pulleyJointDifference = self.config["Climber"]["Arm_Dimensions"]["PulleyJointDifference"]
+
+        self.shoulderPID = wpimath.controller.PIDController(self.config["Climber"]["shoulderPID"]["kP"], self.config["Climber"]["shoulderPID"]["kI"], self.config["Climber"]["shoulderPID"]["kD"])
+        self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
+
     def getArmInverseKinematics(self, x, y):
-            '''This returns the angle of the shoulder and the length of strap let out of the winch based on the desired x and y position of the arm hook.'''
-            # TODO: Put these constants in the config file (because they might be wrong).
-            L1 = 11
-            L2 = 2.5
-            L3 = 16.5
-            L4 = math.hypot(L2, L3)
-            L6 = 3
-            theta = math.acos(x/(math.hypot(x,y))) - math.acos(((x**2)+(y**2)+(L1**2)-(L4**2))/(2*L1*math.hypot(x,y))) - (math.pi/4)
-            theta = theta * 180 / math.pi
-            L5 = math.hypot(x,(y-L6))
-            return(L5, theta)
+        '''This returns the angle of the shoulder and the length of strap let out of the winch based on the desired x and y position of the arm hook.'''
+        theta = math.acos(x/(math.hypot(x,y))) - math.acos(((x**2) + (y**2) + (self.armLength**2) - (self.forearmLength**2))/(2*self.armLength*math.hypot(x,y))) - (math.pi/4)
+        theta = theta*180/math.pi
+        winchLength = math.hypot(x,(y - self.pulleyJointDifference))
+        return(winchLength, theta)
+    
+    def getArmKinematics(self, winchLength, theta1):
+        '''This math might be wrong but I don't know how to test that yet.'''
+        theta2 = math.acos(((L5**2) + (self.armLength**2) - (self.forearmLength**2))/(2*L5*self.armLength))
+        L5 = ((2*self.pulleyJointDifference*math.cos(math.pi - theta1 - theta2)) + math.sqrt(((2*self.pulleyJointDifference*math.cos(math.pi - theta1 - theta2))**2) - (4*(-(winchLength**2) + (self.pulleyJointDifference**2)))))/2
+        x = L5*math.cos(theta1 + theta2)
+        y = L5*math.sin(theta1 + theta2)
+        return(x, y)
         
     def moveTo(self, x, y):
         L5, theta = self.getArmInverseKinematics(x, y)
         self.winch.reel(L5)
         self.shoulder.setAngle(theta)
+    
+    def coast(self):
+        self.winch.motor.setNeutralMode(ctre.NeutralMode.Coast)
+        self.shoulder.motor.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
+        self.winch.motor.set(ctre.ControlMode.PercentOutput, 0)
+        self.shoulder.motor.set(0)
+    
+    def brake(self):
+        self.winch.motor.setNeutralMode(ctre.NeutralMode.Brake)
+        self.shoulder.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
+        self.winch.motor.set(ctre.ControlMode.PercentOutput, 0)
+        self.shoulder.motor.set(0)
+    
+    def zeroEncoders(self):
+        self.shoulder.encoder.setPosition(0)
+        self.winch.motor.setSelectedSensorPosition(0)
+    
+    def setShoulderAngle(self, angle):
+        self.shoulderPID.setSetpoint(angle)
+        
+        speed = self.shoulderPID.calculate(self.shoulder.getAngle())
+        if speed > 0:
+            self.shoulder.forward(speed)
+        elif speed < 0:
+            self.shoulder.backward(speed)
+        else:
+            self.shoulder.brake()
+    
+    def moveShoulder(self, speed):
+        if abs(speed) > 0:
+            self.shoulder.move(speed)
+        else:
+            self.shoulder.brake()
+    
+    def setWinchPosition(self, position):
+        self.winchPID.setSetpoint(position)
+        
+        speed = self.winchPID.calculate(self.winch.getAngle())
+        if speed > 0:
+            self.winch.forward(speed)
+        elif speed < 0:
+            self.winch.backward(speed)
+        else:
+            self.winch.brake()
+    
+    def moveWinch(self, speed):
+        if abs(speed) > 0:
+            self.winch.move(speed)
+        else:
+            self.winch.brake()
 
 class Shoulder:
     '''The forward and backward directions need to be tested.'''
@@ -141,8 +165,8 @@ class Shoulder:
         self.currentLimit = config["Climber"]["shoulderCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["shoulderStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
         self.encoder = self.motor.getEncoder()
-        #self.motor.FaultID.kSoftLimitRev = 5 # This is in rotations (with a 100 to 1 gear ratio), and prevents backwards movement beyond the specified encoder value
-        #self.motor.FaultID.kSoftLimitFwd = 60
+        self.motor.FaultID.kSoftLimitRev = 5  # This is in rotations (with a 100 to 1 gear ratio), and prevents backwards movement beyond the specified encoder value
+        self.motor.FaultID.kSoftLimitFwd = 60
         self.shoulderPID = wpimath.controller.PIDController(0.005, 0, 0)
         self.shoulderPID.setTolerance(1, 1)
         self.name = name
@@ -200,6 +224,7 @@ class Winch:
         self.velocityLimit = config["Climber"]["winchStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
         self.motor.setSelectedSensorPosition(0)
         self.motor.configReverseSoftLimitThreshold(100) # This is in encoder ticks, and it prevents backwards movement beyond the specified encoder value
+        self.motor.configForwardSoftLimitThreshold(20480) # I set this limit to 10 rotations, but it just needs to be adjusted so the winch doesn't let too much out and start wrapping the other way around the axle
         self.name = name
         self.CurrentCircumference = math.pi * 1 # idk what the base diameter of the pulley is
         self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
@@ -236,7 +261,7 @@ class Winch:
         rotationValue = a[0] + (deltaRotation*ratioDistance)
         return(rotationValue)
 
-    def release(self, speed):
+    def spin(self, speed):
         self.motor.set(ctre.ControlMode.PercentOutput, speed)
 
         if ctre.Faults.ForwardSoftLimit in self.motor.getFaults():
