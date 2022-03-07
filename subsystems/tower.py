@@ -17,21 +17,12 @@ class Tower:
         self.ballClimberSpeed = 0.5
 
         self.proximitySensor = wpilib.AnalogInput(config["Tower"]["proximitySensorID"])
-
         self.PIDTolerance = 42
-        self.kP = 0.0001
-        self.kI = 0.0
-        self.kD = 0
-        self.PID = self.shooterMotor.getPIDController()
-        self.PID.setP(self.kP)
-        self.PID.setI(self.kI)
-        self.PID.setD(self.kD)
     
-    def setShooterVelocity(self, velocity):
+    def setShooterVelocity(self, voltage):
         '''Sets the RPM of the shooter flywheel.'''
-        self.PID.setSetpoint(velocity)
-        self.shooterMotor.set(self.PID.calculate(self.shooterEncoder.getVelocity()))
-    
+        self.shooterMotor.setVoltage(8)
+
     def setFeederSpeed(self, speed):
         '''Sets the percent output of the tower's base feeder motor.'''
         self.feederMotor.set(ctre.ControlMode.PercentOutput, speed)
@@ -93,7 +84,7 @@ class Tower:
         self.setBallClimberSpeed(-self.ballClimberSpeed)
     
     def flywheelUpToSpeed(self):
-        if self.getShooterVelocity() > 4800:
+        if self.getShooterVelocity() > 3000:
             return True
         else:
             return False

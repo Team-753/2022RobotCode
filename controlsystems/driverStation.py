@@ -32,6 +32,10 @@ class driverStation:
             "moveWinches": 0.0,
             "intakeOn": False,
             "resetDriveTrainEncoders": False,
+            "winchIn": False,
+            "winchOut": False,
+            "shoulderClockwise": False,
+            "shoulderCounterClockwise": False,
             "macros": {}
         }
         
@@ -50,11 +54,16 @@ class driverStation:
             switches["swerveAfterburners"] = self.driverInput.getLeftBumper()
             if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
                 switches["swapFieldOrient"] = True
+            leftAxis = self.auxiliaryInput.getLeftY()
+            if leftAxis > 0.5:
+                switches["shoulderCounterClockwise"] = True
+            elif leftAxis > 0.5:
+                switches["shoulderClockwise"] = True
             dPadState = self.auxiliaryInput.getPOV()
             if dPadState == 90:
-                pass
+                switches["winchIn"] = True
             elif dPadState == 270:
-                pass
+                switches["winchOut"] = True
             elif dPadState == 0:
                 switches["intakeUp"] = True
             elif dPadState == 180:

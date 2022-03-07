@@ -78,6 +78,8 @@ class swerveModule:
         
     def coast(self):
         ''' Coasts the swerve module '''
+        self.driveMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
+        self.turnMotor.set(ctre.TalonFXControlMode.PercentOutput, 0)
         self.driveMotor.setNeutralMode(ctre.NeutralMode.Coast)
         self.turnMotor.setNeutralMode(ctre.NeutralMode.Coast)
     

@@ -10,18 +10,18 @@ class Autonomous:
         self.navx = nvxObj
         self.waiting = 0
         unParsedPath = self.loadPath(autonomousPathName)
-        self.navx.setAngleAdjustment(unParsedPath["initialization"]["angle"])
-        self.xOffset = unParsedPath["initialization"]["xOffset"]
-        self.yOffset = unParsedPath["initialization"]["yOffset"]
+        self.navx.setAngleAdjustment(unParsedPath[0]["heading"])
+        self.xOffset = unParsedPath[0]["x"]
+        self.yOffset = unParsedPath[0]["y"]
         points = []
         maxAngularVelocity = math.pi / 2 # change to degrees
         maxAngularAcceleration = math.pi # change to degrees
-        for point in unParsedPath["controlPoints"]:
+        for point in unParsedPath:
             points.append(ControlPoint(point["x"], point["y"], point["theta"], point["d"], point["speed"], point["heading"], point["stop"], point["actions"]))
-        self.generatedPath = self.generatePath(points, int(unParsedPath["initialization"]["pathLength"]))
+        self.generatedPath = self.generatePath(points, 500) # NOTE: 500 is temporary
         self.headingController = wpimath.controller.ProfiledPIDController(0.005, 0.0025, 0, 
         wpimath.trajectory.TrapezoidProfile.Constraints(maxAngularVelocity, maxAngularAcceleration)) # needs some testing
-        self.headingController.enableContinuousInput(-180, 180)
+        self.headingController.enableContinuousInput(-math.pi, math.pi)
         self.speedController = wpimath.controller.PIDController(0.005, 0.002, 0) # god this needs sooo much testing
         self.pathPosition = 1
         for idx, generatedPoint in enumerate(self.generatedPath):
