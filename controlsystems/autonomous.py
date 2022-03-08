@@ -18,11 +18,13 @@ class Autonomous:
         maxAngularAcceleration = math.pi # change to degrees
         for point in unParsedPath:
             points.append(ControlPoint(point["x"], point["y"], point["theta"], point["d"], point["speed"], point["heading"], point["stop"], point["actions"]))
-        self.generatedPath = self.generatePath(points, 500) # NOTE: 500 is temporary
+        length = self.computeRelativeLength(points)
+        self.generatedPath = self.generatePath(points, length) # NOTE: 500 is temporary
         self.headingController = wpimath.controller.ProfiledPIDController(0.005, 0.0025, 0, 
         wpimath.trajectory.TrapezoidProfile.Constraints(maxAngularVelocity, maxAngularAcceleration)) # needs some testing
         self.headingController.enableContinuousInput(-math.pi, math.pi)
-        self.speedController = wpimath.controller.PIDController(0.005, 0.002, 0) # god this needs sooo much testing
+        self.speedController = wpimath.controller.PIDController(0.0025, 0.001, 0) # god this needs sooo much testing
+        self.OGRemainder = 0
         self.pathPosition = 1
         for idx, generatedPoint in enumerate(self.generatedPath):
             if idx == len(self.generatedPath):
@@ -30,6 +32,7 @@ class Autonomous:
             if generatedPoint["stop"]:
                 endPoint = idx
         self.calculateRemainder(0, endPoint)
+        self.OGRemainder = self.pathRemainder
         self.Timer = wpilib.Timer()
     
     def calculateRemainder(self, startPoint, endPoint):
@@ -58,6 +61,18 @@ class Autonomous:
             interpolatedList.append(self.getPathPosition(i*(len(self.points)-1)/numberOfPoints))
         interpolatedList[numberOfPoints - 1]["stop"] = True
         return interpolatedList
+    
+    def computeRelativeLength(self, controlPoints):
+        length = 0
+        k = 0
+        while (k < len(controlPoints) - 1):
+            point = controlPoints[k]
+            nextPoint = controlPoints[k + 1]
+            differenceX = nextPoint.x - point.x
+            differenceY = nextPoint.y - point.y
+            length += math.sqrt(differenceX * differenceX + differenceY * differenceY)
+            k += 1
+        return int(length)
     
     def getPathPosition(self, t):
         point = {
@@ -178,7 +193,7 @@ class Autonomous:
                 takeAway = self.previousRemainder - math.hypot(abs(xDifference), abs(yDifference))
                 self.previousRemainder = math.hypot(abs(xDifference), abs(yDifference))
                 self.pathRemainder -= takeAway
-                self.speedController.setSetpoint(0)
+                self.speedController.setSetpoint(-(self.OGRemainder - self.pathRemainder))
                 robotSpeed = self.speedController.calculate(-self.pathRemainder)
                 z = self.headingController.calculate(rot, targetPoint["heading"])
                 print(f"xDifference: {xDifference}, yDifference: {yDifference}, Speed: {robotSpeed}, PathRemainder: {self.pathRemainder}")

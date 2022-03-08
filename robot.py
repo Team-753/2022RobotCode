@@ -85,10 +85,11 @@ class MyRobot(wpilib.TimedRobot):
         self.driveTrain.updateOdometry()
         pose = self.driveTrain.getFieldPosition()
         x, y, z, switches = self.auto.periodic(pose)
-        if x == 0 and y == 0 and z ==0:
+        print(x, y, z)
+        '''if x == 0 and y == 0 and z ==0:
             self.driveTrain.coast()
         else:
-            self.driveTrain.move(x, y, z)
+            self.driveTrain.move(x, y, z)'''
         
 
     def teleopInit(self):
