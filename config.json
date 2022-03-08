@@ -43,11 +43,11 @@
     "shoulderCurrentLimit": 35,
     "shoulderStressedVelocityThreshold": 2,
     "leftWinch": {
-      "ID": 17,
+      "ID": 18,
       "Name": "leftWinch"
     },
     "rightWinch": {
-      "ID": 18,
+      "ID": 17,
       "Name": "rightWinch"
     },
     "winchPID": {

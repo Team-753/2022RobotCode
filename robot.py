@@ -26,7 +26,8 @@ smartDash = NetworkTables.getTable('SmartDashboard')
 
 class MyRobot(wpilib.TimedRobot):
     def robotInit(self):
-        wpilib.CameraServer.launch()
+        camera = wpilib.CameraServer()
+        camera.launch()
         
         folderPath = os.path.dirname(os.path.abspath(__file__))
         filePath = os.path.join(folderPath, 'config.json')
@@ -85,11 +86,10 @@ class MyRobot(wpilib.TimedRobot):
         self.driveTrain.updateOdometry()
         pose = self.driveTrain.getFieldPosition()
         x, y, z, switches = self.auto.periodic(pose)
-        print(x, y, z)
-        '''if x == 0 and y == 0 and z ==0:
+        if x == 0 and y == 0 and z ==0:
             self.driveTrain.coast()
         else:
-            self.driveTrain.move(x, y, z)'''
+            self.driveTrain.move(x, y, z)
         
 
     def teleopInit(self):
@@ -101,6 +101,7 @@ class MyRobot(wpilib.TimedRobot):
         '''This function is called periodically during operator control.'''
         switches = self.driverStation.checkSwitches()
         self.driveTrain.updateOdometry()
+        self.tower.getBallDetected()
         pose = self.driveTrain.getFieldPosition()
         wpilib.SmartDashboard.putNumber("x", -pose[0])
         wpilib.SmartDashboard.putNumber("y", -pose[1])
@@ -178,21 +179,14 @@ class MyRobot(wpilib.TimedRobot):
         else:
             self.driveTrain.swerveSpeedFactor = self.config["RobotDefaultSettings"]["robotSpeedLimiter"]
         
-        if switchDict["winchIn"]:
-            self.climber.moveShoulders(0.25)
-        elif switchDict["winchOut"]:
-            self.climber.moveShoulders(-0.25)
+        if switchDict["armStraightUp"]:
+            pass
+        elif switchDict["armToHooks"]:
+            pass
+        elif switchDict["armHome"]:
+            pass
         else:
             self.climber.brakeArms()
-        
-        if self.driverStation.climbModeActivated:
-            self.climber.moveShoulders(switchDict["moveArms"])
-            self.climber.moveWinches(switchDict["moveWinches"])
-
-            if switchDict["releasePeterHooks"]:
-                self.climber.disengageHooks()
-            elif switchDict["tightenPeterHooks"]:
-                self.climber.engageHooks()
     
     def evaluateDeadzones(self, inputs):
         adjustedInputs = []

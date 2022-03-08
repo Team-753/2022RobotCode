@@ -25,7 +25,6 @@ class driverStation:
             "revShooter": False, # revs the shooter
             "ballIndexerIn": False, # runs and compliants and feeder (if no ball is at the top)
             "ballSystemOut": False, # reverses the feeder, compliants, and intake
-            "toggleClimbMode": False,
             "releasePeterHooks": False,
             "tightenPeterHooks": False,
             "moveArms": 0.0,
@@ -36,90 +35,53 @@ class driverStation:
             "winchOut": False,
             "shoulderClockwise": False,
             "shoulderCounterClockwise": False,
-            "macros": {}
+            "macros": {},
+            "armHome": False,
+            "armStraightUp": False,
+            "armToHooks": False
         }
         
+        switches["driverX"] = -self.driverInput.getLeftX()
+        switches["driverY"] = self.driverInput.getLeftY()
+        switches["driverZ"] = self.driverInput.getRightTriggerAxis() - self.driverInput.getLeftTriggerAxis()
+        switches["swerveAfterburners"] = self.driverInput.getLeftBumper()
+        if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
+            switches["swapFieldOrient"] = True
+        leftAxis = self.auxiliaryInput.getLeftY()
+        if leftAxis > 0.5:
+            switches["shoulderCounterClockwise"] = True
+        elif leftAxis > 0.5:
+            switches["shoulderClockwise"] = True
+        dPadStateDriver = self.driverInput.getPOV()
+        if dPadStateDriver == 90:
+            #switches["winchIn"] = True
+            pass
+        elif dPadStateDriver == 270:
+            #switches["winchOut"] = True
+            pass
+        elif dPadStateDriver == 0:
+            switches["intakeUp"] = True
+        elif dPadStateDriver == 180:
+            switches["intakeDown"] = True
+        dPadStateAux = self.driverInput.getPOV()
+        if dPadStateAux == 90:
+            pass
+        elif dPadStateAux == 270:
+            pass
+        elif dPadStateAux == 0:
+            switches["armStraightUp"] = True
+        elif dPadStateAux == 180:
+            switches["armToHooks"] = True
+        if self.auxiliaryInput.getBackButton():
+            switches["armHome"] = True
+        if self.auxiliaryInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
+            switches["revShooter"] = True
+        if self.auxiliaryInput.getLeftBumper():
+            switches["intakeOn"] = True
+        switches["ballSystemOut"] = self.auxiliaryInput.getBButton()
+        switches["ballIndexerIn"] = self.auxiliaryInput.getRightBumper()  #will do checks on this later ie: if flywheel is at sufficient rpm and such
+        switches["releasePeterHooks"] = self.auxiliaryInput.getYButtonReleased()
+        switches["tightenPeterHooks"] = self.auxiliaryInput.getAButtonReleased()
         
-        switches["toggleClimbMode"] = self.checkClimbingModeToggle()
-        if switches["toggleClimbMode"]:
-            if self.climbModeActivated:
-                self.climbModeActivated = False
-            elif not self.climbModeActivated:
-                self.climbModeActivated = True
-        
-        if not self.climbModeActivated: # normal driving mode
-            switches["driverX"] = -self.driverInput.getLeftX()
-            switches["driverY"] = self.driverInput.getLeftY()
-            switches["driverZ"] = self.driverInput.getRightTriggerAxis() - self.driverInput.getLeftTriggerAxis()
-            switches["swerveAfterburners"] = self.driverInput.getLeftBumper()
-            if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
-                switches["swapFieldOrient"] = True
-            leftAxis = self.auxiliaryInput.getLeftY()
-            if leftAxis > 0.5:
-                switches["shoulderCounterClockwise"] = True
-            elif leftAxis > 0.5:
-                switches["shoulderClockwise"] = True
-            dPadState = self.auxiliaryInput.getPOV()
-            if dPadState == 90:
-                switches["winchIn"] = True
-            elif dPadState == 270:
-                switches["winchOut"] = True
-            elif dPadState == 0:
-                switches["intakeUp"] = True
-            elif dPadState == 180:
-                switches["intakeDown"] = True
-            if self.auxiliaryInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
-                switches["revShooter"] = True
-            if self.auxiliaryInput.getLeftBumper():
-                switches["intakeOn"] = True
-            switches["ballSystemOut"] = self.auxiliaryInput.getBButton()
-            switches["ballIndexerIn"] = self.auxiliaryInput.getRightBumper()  #will do checks on this later ie: if flywheel is at sufficient rpm and such
-        else:
-            if self.manualClimbing:
-                switches["releasePeterHooks"], switches["tightenPeterHooks"] = self.peterHooks()
-                switches["moveArms"] = self.auxiliaryInput.getLeftY()
-                switches["moveWinches"] = self.auxiliaryInput.getRightY()
 
         return switches
-
-    def peterHooks(self):
-        releasePeterHooks = False
-        tightenPeterHooks = False
-        if self.peterHookCheckRelease > 0:
-            self.peterHookCheckRelease += 1
-        if self.peterHookCheckRelease > 50:
-            self.peterHookCheckRelease = 0
-        if self.peterHookCheckTighten > 0:
-            self.peterHookCheckTighten += 1
-        if self.peterHookCheckTighten > 50:
-            self.peterHookCheckTighten = 0
-        if self.auxiliaryInput.getYButtonReleased():
-            if self.peterHookCheckRelease == 0:
-                self.peterHookCheckRelease = 1
-            elif self.peterHookCheckRelease > 0:
-                self.peterHookCheckRelease = 0
-                releasePeterHooks = True
-        if self.auxiliaryInput.getAButtonReleased():
-            if self.peterHookCheckTighten == 0:
-                self.peterHookCheckTighten = 1
-            elif self.peterHookCheckTighten > 0:
-                self.peterHookCheckTighten = 0
-                tightenPeterHooks = True
-        return(releasePeterHooks, tightenPeterHooks)
-    
-    def checkClimbingModeToggle(self):
-        if self.auxiliaryInput.getBackButtonPressed() and self.auxiliaryInput.getStartButtonPressed():
-            self.climbCheckOne = True
-        if self.auxiliaryInput.getBackButtonReleased() and self.climbCheckOne:
-            self.climbCheckTwo = True
-        if self.auxiliaryInput.getStartButtonReleased() and self.climbCheckOne:
-            self.climbCheckThree = True
-        if self.climbCheckOne and self.climbCheckTwo and self.climbCheckThree:
-            ''' So what is going on here you may ask? Essentially this is the toggle for the climbing mode activation.
-                to 'toggle' climbing, you must press both the back and start buttons at the same time and then release them at any time.
-                These checks first insure that they are being pressed at the same time and then individually check if they have been released so it
-                only sends the toggle command once. You do not want to toggle multiple times over for something like this.'''
-            self.climbCheckOne = False
-            self.climbCheckTwo = False
-            self.climbCheckThree = False
-            return(True)

@@ -1,4 +1,5 @@
 import math
+from pyparsing import Dict
 import wpilib
 import ctre
 import rev
@@ -8,39 +9,48 @@ class Climber:
     def __init__(self, config: dict):
         self.config = config
         
-        self.leftShoulder = Shoulder(self.config["Climber"]["leftShoulder"]["ID"], self.config["Climber"]["leftShoulder"]["Name"], self.config)
-        self.rightShoulder = Shoulder(self.config["Climber"]["rightShoulder"]["ID"], self.config["Climber"]["rightShoulder"]["Name"], self.config)
+        self.leftShoulder = Shoulder(self.config["Climber"]["leftShoulder"]["ID"], "leftShoulder", self.config)
+        self.rightShoulder = Shoulder(self.config["Climber"]["rightShoulder"]["ID"], "rightShoulder", self.config)
 
-        #self.leftWinch = Winch(self.config["Climber"]["leftWinch"]["ID"], self.config["Climber"]["leftWinch"]["Name"], self.config)
+        self.leftWinch = Winch(self.config["Climber"]["leftWinch"]["ID"], self.config["Climber"]["leftWinch"]["Name"], self.config)
         self.rightWinch = Winch(self.config["Climber"]["rightWinch"]["ID"], self.config["Climber"]["rightWinch"]["Name"], self.config)
 
-        #self.leftArm = Arm(self.leftWinch, self.leftShoulder, self.config)
+        self.leftArm = Arm(self.leftWinch, self.leftShoulder, self.config)
         self.rightArm = Arm(self.rightWinch, self.rightShoulder, self.config)
         
         self.leftHook = wpilib.DoubleSolenoid(self.config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["leftHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["leftHook_PCM_ID_Reverse"])
         self.rightHook = wpilib.DoubleSolenoid(self.config["PCM"], wpilib.PneumaticsModuleType.CTREPCM, forwardChannel = self.config["Climber"]["rightHook_PCM_ID_Forward"], reverseChannel = self.config["Climber"]["rightHook_PCM_ID_Reverse"])
 
-        #self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 5, 360) # TODO: change the number of wraps (third parameter) to whatever the amount actually is.
+        self.winchRotationsToDistanceList = self.generateWinchList(1, 0.0394, 10, 360)
 
     def moveWinches(self, speed):
-        #self.leftArm.moveWinch(speed)
+        self.leftArm.moveWinch(speed)
         self.rightArm.moveWinch(speed)
     
     def moveShoulders(self, speed):
-        #self.leftArm.moveShoulder(speed)
+        self.leftArm.moveShoulder(speed)
         self.rightArm.moveShoulder(speed)
         
     def setArms(self, x, y):
-        #self.leftArm.moveTo(x, y)
+        self.leftArm.moveTo(x, y)
         self.rightArm.moveTo(x, y)
 
     def coastArms(self):
-        #self.leftArm.coast()
+        self.leftArm.coast()
         self.rightArm.coast()
     
     def brakeArms(self):
-        #self.leftArm.brake()
+        self.leftArm.brake()
         self.rightArm.brake()
+        
+    def armsStraightUp(self):
+        self.leftArm.moveTo()
+    
+    def RTH(self):
+        self.leftArm.setShoulderAngle(30)
+        self.rightArm.setShoulderAngle(30)
+        self.leftArm.setWinchPosition(0)
+        self.rightArm.setWinchPosition(0)
     
     def getArmPositions(self):
         wpilib.SmartDashboard.putNumber("Left Arm X", self.leftArm.getArmInverseKinematics(self.leftArm.winch.getWinchLength(), self.leftArm.shoulder.getAngle())[0])
@@ -206,31 +216,32 @@ class Winch:
         self.config = config
         self.name = name
         if self.name == 'leftWinch':
-            self.motor = rev.CANSparkMax(ID)
+            self.neo = rev.CANSparkMax(ID)
+            self.neoEncoder = self.neo.getEncoder()
         else:    
-            self.motor = ctre.TalonFX(ID)
+            self.falcon = ctre.TalonFX(ID)
         self.currentLimit = config["Climber"]["winchCurrentLimit"] # This amperage limit has not been tested
         self.velocityLimit = config["Climber"]["winchStressedVelocityThreshold"] # This number is for checking the current spike when motor stalls
-        self.motor.setSelectedSensorPosition(0)
         #self.motor.configReverseSoftLimitThreshold(100) # This is in encoder ticks, and it prevents backwards movement beyond the specified encoder value
         #self.motor.configForwardSoftLimitThreshold(20480) # I set this limit to 10 rotations, but it just needs to be adjusted so the winch doesn't let too much out and start wrapping the other way around the axle
-        self.CurrentCircumference = math.pi * 1 # idk what the base diameter of the pulley is
         self.winchPID = wpimath.controller.PIDController(self.config["Climber"]["winchPID"]["kP"], self.config["Climber"]["winchPID"]["kI"], self.config["Climber"]["winchPID"]["kD"])
-        self.winchPID.setTolerance(0.5, 1)
+        self.winchPID.setTolerance(0.1, 1)
         if self.name == "leftWinch":
-            self.motor.setInverted(True)
+            self.neo.setInverted(True)
+            self.neoEncoder.setPosition(0)
+            self.brake()
         else:
-            self.motor.setInverted(False)
-        self.brake()
+            self.falcon.setSelectedSensorPosition(0)
+            self.brake()
         length = 0
         self.winchRotationsToDistanceList = []
-        numberOfWraps = 0
-        detailPerRotation = 0
-        strapThickness = 0
-        axleRadius = 0.5
+        numberOfWraps = 10
+        detailPerRotation = 360
+        strapThickness = 0.1
+        axleRadius = 2.55
         for i in range(0,numberOfWraps*detailPerRotation):
             i /= detailPerRotation
-            currentRadius = math.ceil(numberOfWraps - i)*strapThickness + axleRadius
+            currentRadius = math.ceil(numberOfWraps - i)*strapThickness + axleRadius + 0.315
             length += currentRadius*2*math.pi/detailPerRotation
             self.winchRotationsToDistanceList.append((i, length))
     
@@ -250,7 +261,10 @@ class Winch:
         return(rotationValue)
 
     def spin(self, speed):
-        self.motor.set(ctre.ControlMode.PercentOutput, speed)
+        if self.name == "leftWinch":
+            self.neo.set(speed)
+        else:
+            self.falcon.set(ctre.ControlMode.PercentOutput, speed)
 
         '''if ctre.Faults.ForwardSoftLimit in self.motor.getFaults():
             wpilib.SmartDashboard.putBool(self.name + " forward stop", False)
@@ -269,17 +283,22 @@ class Winch:
         else:
             rotationTarget = self.winchRotationLookup(amount)
             self.winchPID.setSetpoint(rotationTarget)
-            motorSpeed = self.winchPID.calculate(self.winchRotationLookup(self.getWinchLength()))
+            motorSpeed = self.winchPID.calculate(self.getRotations())
             if self.winchPID.atSetpoint():
                 self.brake()
             else:   
-                self.motor.set(ctre.ControlMode.PercentOutput, motorSpeed)
+                self.spin(motorSpeed)
     
-    def getWinchLength(self):
-        position = self.motor.getSelectedSensorPosition()
-        length = position * 0.17578125 * self.CurrentCircumference
-        return(length)
+    def getRotations(self):
+        if self.name == "leftWinch":
+            return self.neoEncoder.getPosition() * (360 / 2048) / 48
+        else:
+            return self.falcom.getSelectedSensorPosition() * (360 / 2048) / 60
     
     def brake(self):
-        self.motor.set(ctre.ControlMode.PercentOutput, 0)
-        self.motor.setNeutralMode(ctre.NeutralMode.Brake)
+        if self.name == "leftWinch":
+            self.neo.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
+            self.neo.set(0)
+        else:
+            self.falcon.set(ctre.ControlMode.PercentOutput, 0)
+            self.falcon.setNeutralMode(ctre.NeutralMode.Brake)

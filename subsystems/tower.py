@@ -18,10 +18,19 @@ class Tower:
 
         self.proximitySensor = wpilib.AnalogInput(config["Tower"]["proximitySensorID"])
         self.PIDTolerance = 42
+        self.shooterAmperageTarget = 42
     
-    def setShooterVelocity(self, voltage):
-        '''Sets the RPM of the shooter flywheel.'''
+    def setShooterMaxSpeed(self):
+        self.shooterMotor.setVoltage(12)
+        self.shooterAmperageTarget = 6 # change this
+        
+    def shootFromTarmac(self):
         self.shooterMotor.setVoltage(8)
+        self.shooterAmperageTarget = 4 # change this
+    
+    def shootUpClose(self):
+        self.shooterMotor.setVoltage(4)
+        self.shooterAmperageTarget = 2 # change this
 
     def setFeederSpeed(self, speed):
         '''Sets the percent output of the tower's base feeder motor.'''
@@ -43,6 +52,7 @@ class Tower:
     def coastShooter(self):
         self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kCoast)
         self.shooterMotor.set(0)
+        self.shooterAmperageTarget = 42
         
     def brakeShooter(self):
         self.shooterMotor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
@@ -84,7 +94,8 @@ class Tower:
         self.setBallClimberSpeed(-self.ballClimberSpeed)
     
     def flywheelUpToSpeed(self):
-        if self.getShooterVelocity() > 3000:
+        wpilib.SmartDashboard.putNumber("flywheel amperage", self.shooterMotor.getOutputCurrent())
+        if self.shooterMotor.getOutputCurrent() > self.shooterAmperageTarget:
             return True
         else:
             return False
@@ -95,16 +106,7 @@ class Tower:
             self.runAllNoConsequences()
         elif self.getBallDetected():
             self.setFeederSpeed(self.feederSpeed)
+            self.setBallClimberSpeed(0)
         else:
-            print("indexing all")
             self.setBallClimberSpeed(self.ballClimberSpeed)
-            self.setFeederSpeed(self.feederSpeed)  
-
-    def shoot(self, targetVelocity):
-        '''Sets a target velocity for the shooter in RPM. 
-        When it gets within the shooter's PID tolerance it turns on the feeder and ball climber.'''
-        if abs(self.getShooterVelocity() - targetVelocity) < self.PIDTolerance:
             self.setFeederSpeed(self.feederSpeed)
-            self.setBallClimberSpeed(self.ballClimberSpeed)
-        else:
-            self.setShooterVelocity(targetVelocity)
