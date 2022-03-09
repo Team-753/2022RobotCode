@@ -102,7 +102,7 @@ class Odometry:
         Y Displacement, 
         Robot Rotation (in non unit circle degrees)
         '''
-        return self.displacementX, self.displacementY, self.navxAngleToUnitCircle(self.navxToOneEighty(self.navx.getAngle()))
+        return -self.displacementX, -self.displacementY, self.navxAngleToUnitCircle(self.navxToOneEighty(self.navx.getAngle()))
     
     def reset(self):
         self.displacementX = 0

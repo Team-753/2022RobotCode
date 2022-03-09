@@ -51,7 +51,7 @@
       "Name": "rightWinch"
     },
     "winchPID": {
-      "kP": 0.005,
+      "kP": 0.5,
       "kI": 0,
       "kD": 0
     },
@@ -59,8 +59,8 @@
     "winchStressedVelocityThreshold": 2,
     "leftHook_PCM_ID_Forward": 0,
     "leftHook_PCM_ID_Reverse": 1,
-    "rightHook_PCM_ID_Forward": 2,
-    "rightHook_PCM_ID_Reverse": 3,
+    "rightHook_PCM_ID_Forward": 3,
+    "rightHook_PCM_ID_Reverse": 2,
     "Arm_Dimensions": {
       "Arm": 11,
       "Forearm1": 2.5,
@@ -70,8 +70,8 @@
   },
   "Intake": {
     "motorID": 16,
-    "pistonIDForward": 4,
-    "pistonIDReverse": 5,
+    "pistonIDForward": 5,
+    "pistonIDReverse": 4,
     "inverted": true,
     "IntakeSpeed": 0.65
   },

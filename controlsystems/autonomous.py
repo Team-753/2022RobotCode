@@ -11,8 +11,8 @@ class Autonomous:
         self.waiting = 0
         unParsedPath = self.loadPath(autonomousPathName)
         self.navx.setAngleAdjustment(unParsedPath[0]["heading"])
-        self.xOffset = unParsedPath[0]["x"]
-        self.yOffset = unParsedPath[0]["y"]
+        self.xOffset = 0#unParsedPath[0]["x"]
+        self.yOffset = 0#unParsedPath[0]["y"]
         points = []
         maxAngularVelocity = math.pi / 2 # change to degrees
         maxAngularAcceleration = math.pi # change to degrees
@@ -34,6 +34,26 @@ class Autonomous:
         self.calculateRemainder(0, endPoint)
         self.OGRemainder = self.pathRemainder
         self.Timer = wpilib.Timer()
+        self.generatedPath = [
+            {
+            "x": 0,
+            "y": 0,
+            "speed": 0.25,
+            "heading": 0,
+            "stop": False,
+            "actions": ["0.0"],
+            "index": self.index
+        },
+            {
+            "x": 0,
+            "y": 300,
+            "speed": 0.25,
+            "heading": 0,
+            "stop": True,
+            "actions": ["0.0"],
+            "index": self.index,
+        }
+        ]
     
     def calculateRemainder(self, startPoint, endPoint):
         self.pathRemainder = 0
@@ -81,7 +101,7 @@ class Autonomous:
             "speed": 0,
             "heading": 0,
             "stop": False,
-            "actions": [],
+            "actions": ["0.0"],
             "index": self.index
         }
         self.index += 1
@@ -170,22 +190,31 @@ class Autonomous:
         ''' Call this function every autonomous runtime loop '''
         xPos = (pose[0] * 100) + self.xOffset
         yPos = (pose[1] * 100) + self.yOffset
-        rot = (pose[2] * 100)
-        print(f"xPos: {xPos}, yPos: {yPos}, rot: {rot}")
+        rot = self.navx.getAngle() * math.pi / 180
+        # print(f"xPos: {xPos}, yPos: {yPos}, rot: {rot}")
         targetPoint = self.generatedPath[self.pathPosition]
         if self.waiting == 0:
+            wpilib.SmartDashboard.putNumber("targetX", targetPoint["x"])
+            wpilib.SmartDashboard.putNumber("targetY", targetPoint["y"])
             while self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])[0]:
-                if targetPoint["stop"]:
-                    self.waiting = float(targetPoint["actions"]["waitTime"])
-                    self.Timer.start()
-                    return 0, 0, 0, targetPoint["actions"]
                 if self.pathPosition == len(self.generatedPath):
                     return 0, 0, 0, ["end"]
+                if targetPoint["stop"]:
+                    self.waiting = float(targetPoint["actions"][0])
+                    self.Timer.start()
+                    for idx, generatedPoint in enumerate(self.generatedPath[self.pathPosition + 1:], start=self.pathPosition + 1):
+                        if idx == len(self.generatedPath):
+                            break
+                        if generatedPoint["stop"]:
+                            endPoint = idx
+                    self.calculateRemainder(0, endPoint)
+                    self.OGRemainder = self.pathRemainder
+                    return 0, 0, 0, targetPoint["actions"]
                 self.pathPosition += 1
                 targetPoint = self.generatedPath[self.pathPosition]
             else:
                 if targetPoint["stop"]:
-                    self.waiting = float(targetPoint["actions"]["waitTime"])
+                    self.waiting = float(targetPoint["actions"][0])
                     self.Timer.start()
                     return 0, 0, 0, targetPoint["actions"]
                 actions = targetPoint["actions"]
@@ -194,10 +223,12 @@ class Autonomous:
                 self.previousRemainder = math.hypot(abs(xDifference), abs(yDifference))
                 self.pathRemainder -= takeAway
                 self.speedController.setSetpoint(-(self.OGRemainder - self.pathRemainder))
-                robotSpeed = self.speedController.calculate(-self.pathRemainder)
+                robotSpeed = 1 #self.speedController.calculate(-self.pathRemainder)
                 z = self.headingController.calculate(rot, targetPoint["heading"])
-                print(f"xDifference: {xDifference}, yDifference: {yDifference}, Speed: {robotSpeed}, PathRemainder: {self.pathRemainder}")
+                #print(f"xDifference: {xDifference}, yDifference: {yDifference}, Speed: {robotSpeed}, PathRemainder: {self.pathRemainder}")
                 x, y = self.convertToXY(xDifference, yDifference, robotSpeed * targetPoint["speed"])
+                wpilib.SmartDashboard.putNumber("xDifference", xDifference)
+                wpilib.SmartDashboard.putNumber("yDifference", yDifference)
                 return x, y, z, actions
         else:
             if self.Timer.hasElapsed(self.waiting):

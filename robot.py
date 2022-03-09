@@ -86,10 +86,16 @@ class MyRobot(wpilib.TimedRobot):
         self.driveTrain.updateOdometry()
         pose = self.driveTrain.getFieldPosition()
         x, y, z, switches = self.auto.periodic(pose)
-        if x == 0 and y == 0 and z ==0:
+        wpilib.SmartDashboard.putNumber("Autonomous X", x)
+        wpilib.SmartDashboard.putNumber("Autonomous Y", -y)
+        wpilib.SmartDashboard.putNumber("Autonomous Z", z)
+        wpilib.SmartDashboard.putNumber("x", pose[0])
+        wpilib.SmartDashboard.putNumber("y", pose[1])
+        wpilib.SmartDashboard.putNumber("Rotation", pose[2])
+        if x == 0 and y == 0 and z == 0:
             self.driveTrain.coast()
         else:
-            self.driveTrain.move(x, y, z)
+            self.driveTrain.move(x, -y, z)
         
 
     def teleopInit(self):
@@ -103,10 +109,10 @@ class MyRobot(wpilib.TimedRobot):
         self.driveTrain.updateOdometry()
         self.tower.getBallDetected()
         pose = self.driveTrain.getFieldPosition()
-        wpilib.SmartDashboard.putNumber("x", -pose[0])
-        wpilib.SmartDashboard.putNumber("y", -pose[1])
-        wpilib.SmartDashboard.putNumber("navX x", self.navx.getDisplacementX())
-        wpilib.SmartDashboard.putNumber("navX y", self.navx.getDisplacementY())
+        wpilib.SmartDashboard.putNumber("x", pose[0])
+        wpilib.SmartDashboard.putNumber("y", pose[1])
+        wpilib.SmartDashboard.putNumber("Rotation", pose[2])
+        # wpilib.SmartDashboard.putNumber("winch position", self.climber.rightArm.winch.getRotations())
         switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"]))
         
         self.switchActions(switches)
@@ -120,10 +126,7 @@ class MyRobot(wpilib.TimedRobot):
             smartDash.putNumber("RearLeftAbs", vals[2][3])
             smartDash.putNumber("RearRightAbs", vals[3][3])'''
             self.tower.getBallDetected()
-            wpilib.SmartDashboard.putNumber("NavX Angle", self.navx.getAngle())
-            wpilib.SmartDashboard.putNumber("NavX X", self.navx.getRawGyroX())
-            wpilib.SmartDashboard.putNumber("NavX Y", self.navx.getRawGyroY())
-            wpilib.SmartDashboard.putNumber("NavX Z", self.navx.getRawGyroZ())
+            wpilib.SmartDashboard.putNumber("flywheel pos", self.tower.shooterEncoder.getPosition())
     
     def disabledInit(self) -> None:
         self.driveTrain.coast()
@@ -161,7 +164,7 @@ class MyRobot(wpilib.TimedRobot):
             
         if switchDict["revShooter"]:
             smartDash.putBoolean("aether", True)
-            self.tower.setShooterVelocity(wpilib.SmartDashboard.getNumber("targetRPM", 1)) # this is temporary until we can start getting vision data
+            self.tower.shootFromTarmac()
         else:
             smartDash.putBoolean("aether", False)
             self.tower.coastShooter()
@@ -184,9 +187,34 @@ class MyRobot(wpilib.TimedRobot):
         elif switchDict["armToHooks"]:
             pass
         elif switchDict["armHome"]:
-            pass
+            self.climber.setArms(0, 18)
+        elif switchDict["leftWinchIn"]:
+            self.climber.leftArm.moveWinch(0.5)
+            self.climber.rightArm.brake()
+        elif switchDict["rightWinchIn"]:
+            self.climber.rightArm.moveWinch(0.5)
+            self.climber.leftArm.brake()
+        elif switchDict["leftWinchOut"]:
+            self.climber.leftArm.moveWinch(-0.5)
+            self.climber.rightArm.brake()
+        elif switchDict["rightWinchOut"]:
+            self.climber.rightArm.moveWinch(-0.5)
+            self.climber.leftArm.brake()
+        elif switchDict["winchesIn"]:
+            self.climber.leftArm.winch.setRPM(60)
+            self.climber.rightArm.winch.setRPM(60)
+        elif switchDict["winchesOut"]:
+            self.climber.leftArm.winch.setRPM(-60)
+            self.climber.rightArm.winch.setRPM(-60)
         else:
             self.climber.brakeArms()
+        if switchDict["tightenPeterHooks"]:
+            self.climber.engageHooks()
+        elif switchDict["releasePeterHooks"]:
+            self.climber.disengageHooks()
+        
+        if switchDict["testVolts"] > 1:
+            self.climber.leftShoulder.setVoltage(switchDict["testVolts"])
     
     def evaluateDeadzones(self, inputs):
         adjustedInputs = []

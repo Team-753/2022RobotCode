@@ -25,8 +25,8 @@ class Tower:
         self.shooterAmperageTarget = 6 # change this
         
     def shootFromTarmac(self):
-        self.shooterMotor.setVoltage(8)
-        self.shooterAmperageTarget = 4 # change this
+        self.shooterMotor.setVoltage(12)
+        self.shooterAmperageTarget = 2 # change this
     
     def shootUpClose(self):
         self.shooterMotor.setVoltage(4)

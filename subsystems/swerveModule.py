@@ -111,7 +111,7 @@ class swerveModule:
     
     def getDriveMotorVelocity(self):
         ''' Returns the drive motor velocity in meters per second '''
-        velocityMPS = self.driveMotor.getSelectedSensorVelocity(0) * 10 * 0.0508 * math.pi / self.CPR
+        velocityMPS = self.driveMotor.getSelectedSensorVelocity(0) * 10 * 0.1016 * math.pi / (self.CPR * 8.14)
         '''if self.moduleReversed:
             return -velocityMPS
         else:

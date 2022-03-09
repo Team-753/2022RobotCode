@@ -31,14 +31,19 @@ class driverStation:
             "moveWinches": 0.0,
             "intakeOn": False,
             "resetDriveTrainEncoders": False,
-            "winchIn": False,
-            "winchOut": False,
+            "leftWinchIn": False,
+            "rightWinchIn": False,
+            "leftWinchOut": False,
+            "rightWinchOut": False,
             "shoulderClockwise": False,
             "shoulderCounterClockwise": False,
             "macros": {},
             "armHome": False,
             "armStraightUp": False,
-            "armToHooks": False
+            "armToHooks": False,
+            "testVolts": 0.0,
+            "winchesIn": False,
+            "winchesOut": False
         }
         
         switches["driverX"] = -self.driverInput.getLeftX()
@@ -63,15 +68,13 @@ class driverStation:
             switches["intakeUp"] = True
         elif dPadStateDriver == 180:
             switches["intakeDown"] = True
-        dPadStateAux = self.driverInput.getPOV()
-        if dPadStateAux == 90:
-            pass
-        elif dPadStateAux == 270:
-            pass
-        elif dPadStateAux == 0:
-            switches["armStraightUp"] = True
+        dPadStateAux = self.auxiliaryInput.getPOV()
+        if dPadStateAux == 0:
+            #switches["armStraightUp"] = True
+            switches["winchesOut"] = True
         elif dPadStateAux == 180:
-            switches["armToHooks"] = True
+            #switches["armToHooks"] = True
+            switches["winchesIn"] = True
         if self.auxiliaryInput.getBackButton():
             switches["armHome"] = True
         if self.auxiliaryInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
@@ -82,6 +85,17 @@ class driverStation:
         switches["ballIndexerIn"] = self.auxiliaryInput.getRightBumper()  #will do checks on this later ie: if flywheel is at sufficient rpm and such
         switches["releasePeterHooks"] = self.auxiliaryInput.getYButtonReleased()
         switches["tightenPeterHooks"] = self.auxiliaryInput.getAButtonReleased()
+        switches["testVolts"] = self.auxiliaryInput.getLeftTriggerAxis() * 12
+        if self.auxiliaryInput.getStartButton():
+            if self.auxiliaryInput.getPOV() == 90:
+                switches["rightWinchOut"] = True
+            if self.auxiliaryInput.getPOV() == 270:
+                switches["leftWinchOut"] = True
+        if dPadStateAux == 90 and not self.auxiliaryInput.getStartButton():
+            switches["rightWinchIn"] = True
+        if dPadStateAux == 270 and not self.auxiliaryInput.getStartButton():
+            switches["leftWinchIn"] = True
+        
         
 
         return switches
