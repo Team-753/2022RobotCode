@@ -81,7 +81,7 @@ class Arm:
 
     def getArmInverseKinematics(self, x, y):
         '''This returns the angle of the shoulder and the length of strap let out of the winch based on the desired x and y position of the arm hook.'''
-        theta = (math.pi/2) + math.acos(x/(math.hypot(x,y))) - math.acos(((x**2) + (y**2) + (self.armLength**2) - (self.forearmLength**2))/(2*self.armLength*math.hypot(x,y))) - (math.pi/4)
+        theta = (math.pi/2) + math.acos(x/(math.hypot(x,y))) - math.acos(((x**2) + (y**2) + (self.armLength**2) - (self.forearmLength**2))/(2*self.armLength*math.hypot(x,y)))
         theta = theta*180/math.pi
         winchLength = math.hypot(x,(y - self.pulleyJointDifference))
         return(winchLength, theta)
