@@ -146,14 +146,21 @@ class Shoulder:
         self.encoder.setPosition(0)
         #self.motor.FaultID.kSoftLimitRev = 5  # This is in rotations (with a 100 to 1 gear ratio), and prevents backwards movement beyond the specified encoder value
         #self.motor.FaultID.kSoftLimitFwd = 60
-        self.shoulderPID = wpimath.controller.PIDController(0.5, 0, 0)
-        self.shoulderPID.setTolerance(1, 1)
+
         self.name = name
         if self.name == "leftShoulder":
             self.motor.setInverted(True)
+            pVal = 0.008
+            IvAL = 0.0003
         else:
+            pVal = 0.008
+            IvAL = 0.0003
             self.motor.setInverted(False)
+        self.shoulderPID = wpimath.controller.PIDController(pVal, IvAL, -0.0001)
+        self.shoulderPID.setTolerance(0.5, 5)
 
+    def zeroShoulder(self):
+        self.encoder.setPosition(0)
     def move(self, speed):
         self.motor.set(speed)
         
@@ -168,21 +175,25 @@ class Shoulder:
             wpilib.SmartDashboard.putBool(self.name + " reverse stop", False)'''
             
     def setAngle(self, angle):
-        print(f"Name: {self.name}, Angle: {self.getAngle()}, Target Angle: {angle}")
+        #print(f"Name: {self.name}, Angle: {self.getAngle()}, Target Angle: {angle}")
+        self.shoulderPID.setSetpoint(angle)
+        speed = self.shoulderPID.calculate(self.getAngle())
+        print(speed)
         if angle < 30:
+            #print("below threshold")
             self.motor.set(0)
             self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
-        if angle > 180:
+        elif angle > 180:
+            #print("above threshold")
             self.motor.set(0)
             self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
-        if self.shoulderPID.atSetpoint():
+        elif self.shoulderPID.atSetpoint():
+            #print("at setpoint")
             self.motor.set(0)
             self.motor.setIdleMode(rev.CANSparkMax.IdleMode.kBrake)
         else:
-            self.shoulderPID.setSetpoint(angle)
-            speed = self.shoulderPID.calculate(self.getAngle())
             self.motor.set(speed)
-            print(f"Name: {self.name}, Angle: {self.getAngle()}, Target Angle: {angle}, Motor Output: {speed}")
+            #print(f"Name: {self.name}, Angle: {self.getAngle()}, Target Angle: {angle}, Motor Output: {speed}")
     def setVoltage(self, voltage):
         self.motor.setVoltage(voltage)
     def getAngle(self):
@@ -218,8 +229,8 @@ class Winch:
             self.neoEncoder.setPosition(0)
             self.brake()
             self.neoPID = self.neo.getPIDController()
-            self.neoPID.setP(0.5)
-            self.neoPID.setI(0)
+            self.neoPID.setP(0.00012)
+            self.neoPID.setI(0.0000008)
             self.neoPID.setD(0)
             self.neoPID.setFF(0)
             #self.neoPID.setOutputRange(0,0)
@@ -227,7 +238,7 @@ class Winch:
             self.falcon.setSelectedSensorPosition(0)
             self.brake()
             self.falcon.setInverted(True)
-            self.falcon.config_kP(0, 0.5)
+            self.falcon.config_kP(0, 0.00085)
             self.falcon.config_kI(0, 0)
             self.falcon.config_kD(0, 0)
             self.falcon.config_kF(0, 0)
@@ -279,9 +290,11 @@ class Winch:
         if self.name == "leftWinch":
             adjustedRPM = rpm * 48
             self.neoPID.setReference(adjustedRPM, rev.CANSparkMax.ControlType.kVelocity, 0, 0)
+            wpilib.SmartDashboard.putNumber("leftArmRPM", self.neoEncoder.getVelocity() / 48)
         else:
             adjustedRPM = rpm * 60 * 2048 / 10 # adjusting for gear ratio and ticks per 100ms
             self.falcon.set(ctre.ControlMode.Velocity, adjustedRPM)
+            wpilib.SmartDashboard.putNumber("rightArmRPM", self.falcon.getSelectedSensorVelocity(0) * 60 * 10 / (60 * 2048))
     
     def reel(self, amount):
         if amount < 0:

@@ -1,3 +1,4 @@
+from xmlrpc.client import FastMarshaller
 import wpilib
 import json
 import os
@@ -5,19 +6,20 @@ from networktables import NetworkTables
 import navx
 import threading
 from subsystems.driveTrain import driveTrain
-from controlsystems.autonomous import Autonomous
+#from controlsystems.autonomous import Autonomous
 from controlsystems.driverStation import driverStation
 from subsystems.climber import Climber
 from subsystems.intake import Intake
 from subsystems.driveTrain import driveTrain
 from subsystems.tower import Tower
+from controlsystems.autonomous2 import shootAndRun
 
 cond = threading.Condition()
 notified = False
 def connectionListener(connected, info):
 	print(info, '; Connected=%s' % connected)
 	with cond:
-		notified = True 
+		notified = True
 		cond.notify()
 
 NetworkTables.initialize()
@@ -40,13 +42,11 @@ class MyRobot(wpilib.TimedRobot):
         self.navx = navx.AHRS.create_spi()
         self.driveTrain = driveTrain(self.config, self.navx)
         self.Timer = wpilib.Timer()
+        wpilib.SmartDashboard.putNumber("NAVX OFFSET", 0)
         self.DEBUGSTATEMENTS = True
-        smartDash.putBoolean("robotEnabled", False)
-        smartDash.putBoolean("aether", False)
         self.revvingShooter = False
         #self.climber.zeroEncoders()
-        wpilib.SmartDashboard.putString("Play of the Game", "straightLine")
-        wpilib.SmartDashboard.putNumber("targetRPM", 1)
+        #wpilib.SmartDashboard.putString("Play of the Game", "straightLine")
         
         self.autonomousSwitches = {
             "intakeOn": self.intake.carWashOn(),
@@ -58,75 +58,146 @@ class MyRobot(wpilib.TimedRobot):
             "coastShooter": self.tower.coastShooter(),
             "indexBall": self.tower.indexer(),
             "coastBallPath": self.tower.towerCoast()
-        }
-        
-    def disabledExit(self) -> None:
-        smartDash.putBoolean("robotEnabled", True)
-        
+        }      
         
     def disabledInit(self) -> None:
         self.intake.carWashOff()
         self.tower.towerCoast()
         self.driveTrain.coast()
-        smartDash.putBoolean("robotEnabled", False)
-        smartDash.putBoolean("aether", False)
+        self.angleOffset = wpilib.SmartDashboard.getNumber("NAVX OFFSET", 0)
         return super().disabledInit()
 
     def smartAutoShooter(self):
         self.revvingShooter = not(self.revvingShooter)
     
+    def autoActions(self, action):
+        actionName = action[0]
+        if actionName == "revShooter":
+            self.tower.shootVariable(action[1])
+            self.auto.queuePosition += 1
+        elif actionName == "wait":
+            if self.Timer.get() > action[1]:
+                self.waiting = False
+                self.auto.queuePosition += 1
+                self.Timer.stop()
+                self.Timer.reset()
+            elif self.waiting == False:
+                self.waiting = True
+                self.Timer.start()
+        elif actionName == "done":
+            pass
+        elif actionName == "indexBall":
+            self.tower.indexer()
+            self.auto.queuePosition += 1
+        elif actionName == "indexStop":
+            self.tower.towerCoast()
+            self.auto.queuePosition += 1
+        elif actionName == "shooterOff":
+            self.tower.coastShooter()
+            self.auto.queuePosition += 1
+        elif actionName == "intakeOn":
+            self.intake.carWashOn()
+            self.auto.queuePosition += 1
+        elif actionName == "intakeDown":
+            self.intake.setLifterDown()
+            self.auto.queuePosition += 1
+        elif actionName == "intakeOff":
+            self.intake.carWashOff()
+            self.auto.queuePosition += 1
+        elif actionName == "move":
+            if self.Timer.get() > action[2]:
+                self.waiting = False
+                self.auto.queuePosition += 1
+                self.Timer.stop()
+                self.Timer.reset()
+            elif self.waiting == False:
+                self.waiting = True
+                self.Timer.start()
+            else: 
+                '''navxAngle = self.getNavx360()
+                z = 0
+                if navxAngle < (self.autoAngle + 2.5) and navxAngle > (self.autoAngle - 2.5):
+                    z = 0
+                elif navxAngle > self.autoAngle:
+                    z = -0.2
+                elif navxAngle < self.autoAngle:
+                    z = 0.2'''
+                self.driveTrain.move(action[1][0], action[1][1], 0)
+        elif actionName == "stationary":
+            self.driveTrain.stationary()
+            self.auto.queuePosition += 1
+        elif actionName == "turnTo":
+            navxAngle = self.getNavx360()
+            self.autoAngle = action[1]
+            #print(f"Current Angle: {navxAngle}, Target Angle: {action[1]}")
+            if navxAngle < (action[1] + 2.5) and navxAngle > (action[1] - 2.5):
+                self.driveTrain.stationary()
+                self.auto.queuePosition += 1
+            elif navxAngle > action[1]:
+                self.driveTrain.move(0, 0, -0.2)
+            elif navxAngle < action[1]:
+                self.driveTrain.move(0, 0, 0.2)
+    
+    def getNavxOneEighty(self):
+        angle = self.navx.getAngle()
+        angle %= 360
+        if angle < -180:
+            angle += 360
+        elif angle > 180:
+            angle -= 360
+        return angle
+    
+    def getNavx360(self):
+        angle = self.navx.getAngle() - self.angleOffset
+        angle %= 360
+        return angle
+            
+    def testInit(self) -> None:
+        self.climber.engageHooks()
+        self.intake.setLifterUp()
+        return super().testInit()
+    
+    def testPeriodic(self) -> None:
+        return super().testPeriodic()
+    
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
-        self.revvingShooter = False
-        self.navx.reset()
-        self.auto = Autonomous(wpilib.SmartDashboard.getString("Play of the Game", "straightLine"), self.navx)
+        #self.navx.reset()
+        self.angleOffset = wpilib.SmartDashboard.getNumber("NAVX OFFSET", 0)
+        #self.angleOffset = -45
+        self.autoAngle = self.angleOffset
+        self.navx.setAngleAdjustment(self.angleOffset)
+        self.driveTrain.fieldOrient = False
+        self.auto = shootAndRun()
+        self.waiting = False
+        self.Timer.reset()
+        
 
     def autonomousPeriodic(self):
         '''This function is called periodically during autonomous.'''
-        self.driveTrain.updateOdometry()
-        pose = self.driveTrain.getFieldPosition()
-        x, y, z, switches = self.auto.periodic(pose)
-        wpilib.SmartDashboard.putNumber("Autonomous X", x)
-        wpilib.SmartDashboard.putNumber("Autonomous Y", -y)
-        wpilib.SmartDashboard.putNumber("Autonomous Z", z)
-        wpilib.SmartDashboard.putNumber("x", pose[0])
-        wpilib.SmartDashboard.putNumber("y", pose[1])
-        wpilib.SmartDashboard.putNumber("Rotation", pose[2])
-        if x == 0 and y == 0 and z == 0:
-            self.driveTrain.coast()
-        else:
-            self.driveTrain.move(x, -y, z)
+        actionToDo = self.auto.periodic()
+        self.autoActions(actionToDo)
+        #print(actionToDo)
+        
         
 
     def teleopInit(self):
-        self.navx.reset() # NOTE: In production code get rid of this line (it will cause problems when autonomous moves the robot)
-        self.driveTrain.resetOdometry()
-        self.navx.resetDisplacement()
+        self.shoulderTargetAngle = 30
+        self.climber.leftArm.shoulder.zeroShoulder()
+        self.climber.rightArm.shoulder.zeroShoulder()
+        self.driveTrain.fieldOrient = True
         
     def teleopPeriodic(self):
         '''This function is called periodically during operator control.'''
         switches = self.driverStation.checkSwitches()
-        self.driveTrain.updateOdometry()
         self.tower.getBallDetected()
-        pose = self.driveTrain.getFieldPosition()
-        wpilib.SmartDashboard.putNumber("x", pose[0])
-        wpilib.SmartDashboard.putNumber("y", pose[1])
-        wpilib.SmartDashboard.putNumber("Rotation", pose[2])
         # wpilib.SmartDashboard.putNumber("winch position", self.climber.rightArm.winch.getRotations())
         switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"]))
         
         self.switchActions(switches)
         
     def disabledPeriodic(self):
-        ''' Intended to update shuffleboard with drivetrain values used for zeroing '''
-        if self.DEBUGSTATEMENTS:
-            '''vals = self.driveTrain.refreshValues()
-            smartDash.putNumber("FrontLeftAbs", vals[0][3])
-            smartDash.putNumber("FrontRightAbs", vals[1][3])
-            smartDash.putNumber("RearLeftAbs", vals[2][3])
-            smartDash.putNumber("RearRightAbs", vals[3][3])'''
-            self.tower.getBallDetected()
-            wpilib.SmartDashboard.putNumber("flywheel pos", self.tower.shooterEncoder.getPosition())
+        pass
     
     def disabledInit(self) -> None:
         self.driveTrain.coast()
@@ -163,10 +234,10 @@ class MyRobot(wpilib.TimedRobot):
             self.intake.carWashOff()
             
         if switchDict["revShooter"]:
-            smartDash.putBoolean("aether", True)
             self.tower.shootFromTarmac()
+        elif switchDict["revShooterClose"]:
+            self.tower.shootUpClose()
         else:
-            smartDash.putBoolean("aether", False)
             self.tower.coastShooter()
             
         if switchDict["ballIndexerIn"]:
@@ -178,7 +249,7 @@ class MyRobot(wpilib.TimedRobot):
             self.tower.towerCoast()
             
         if switchDict["swerveAfterburners"]:
-            self.driveTrain.swerveSpeedFactor = 1
+            self.driveTrain.swerveSpeedFactor = 0.75
         else:
             self.driveTrain.swerveSpeedFactor = self.config["RobotDefaultSettings"]["robotSpeedLimiter"]
         
@@ -189,15 +260,9 @@ class MyRobot(wpilib.TimedRobot):
         elif switchDict["armHome"]:
             self.climber.setArms(0, 18)
         elif switchDict["leftWinchIn"]:
-            self.climber.leftArm.moveWinch(0.5)
-            self.climber.rightArm.brake()
-        elif switchDict["rightWinchIn"]:
-            self.climber.rightArm.moveWinch(0.5)
-            self.climber.leftArm.brake()
-        elif switchDict["leftWinchOut"]:
             self.climber.leftArm.moveWinch(-0.5)
             self.climber.rightArm.brake()
-        elif switchDict["rightWinchOut"]:
+        elif switchDict["rightWinchIn"]:
             self.climber.rightArm.moveWinch(-0.5)
             self.climber.leftArm.brake()
         elif switchDict["winchesIn"]:
@@ -207,14 +272,25 @@ class MyRobot(wpilib.TimedRobot):
             self.climber.leftArm.winch.setRPM(-60)
             self.climber.rightArm.winch.setRPM(-60)
         else:
-            self.climber.brakeArms()
+            self.climber.leftArm.winch.brake()
+            self.climber.rightArm.winch.brake()
+        if abs(switchDict["shoulderValue"]) > 0.1:
+            if self.shoulderTargetAngle + switchDict["shoulderValue"] > 180 or self.shoulderTargetAngle + switchDict["shoulderValue"] < 30:
+                pass
+            else:
+                self.shoulderTargetAngle += switchDict["shoulderValue"]
+        self.climber.leftShoulder.setAngle(self.shoulderTargetAngle)
+        self.climber.rightShoulder.setAngle(self.shoulderTargetAngle)
+        '''elif switchDict["leftWinchOut"]:
+            self.climber.leftArm.moveWinch(-0.5)
+            self.climber.rightArm.brake()
+        elif switchDict["rightWinchOut"]:
+            self.climber.rightArm.moveWinch(-0.5)
+            self.climber.leftArm.brake()'''
         if switchDict["tightenPeterHooks"]:
             self.climber.engageHooks()
         elif switchDict["releasePeterHooks"]:
             self.climber.disengageHooks()
-        
-        if switchDict["testVolts"] > 1:
-            self.climber.leftShoulder.setVoltage(switchDict["testVolts"])
     
     def evaluateDeadzones(self, inputs):
         adjustedInputs = []

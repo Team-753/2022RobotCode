@@ -73,7 +73,7 @@
     "pistonIDForward": 5,
     "pistonIDReverse": 4,
     "inverted": true,
-    "IntakeSpeed": 0.65
+    "IntakeSpeed": 0.8
   },
   "Tower": {
     "towerFeederID": 13,
@@ -91,7 +91,7 @@
   },
   "RobotDefaultSettings": {
     "fieldOrient": true,
-    "robotSpeedLimiter": 0.5
+    "robotSpeedLimiter": 0.75
   },
   "driverStation": {
     "joystickDeadZones": {

@@ -1,4 +1,3 @@
-from operator import truediv
 import wpilib
 import rev
 import ctre
@@ -14,7 +13,7 @@ class Tower:
         self.feederSpeed = 1
 
         self.ballClimberMotor = ctre.VictorSPX(config["Tower"]["ballClimberID"])
-        self.ballClimberSpeed = 0.5
+        self.ballClimberSpeed = 1
 
         self.proximitySensor = wpilib.AnalogInput(config["Tower"]["proximitySensorID"])
         self.PIDTolerance = 42
@@ -25,12 +24,16 @@ class Tower:
         self.shooterAmperageTarget = 6 # change this
         
     def shootFromTarmac(self):
-        self.shooterMotor.setVoltage(12)
-        self.shooterAmperageTarget = 2 # change this
+        self.shooterMotor.setVoltage(8)
+        self.shooterAmperageTarget = 1 # change this
     
     def shootUpClose(self):
-        self.shooterMotor.setVoltage(4)
-        self.shooterAmperageTarget = 2 # change this
+        self.shooterMotor.setVoltage(3.5)
+        self.shooterAmperageTarget = 0
+    
+    def shootVariable(self, voltage):
+        self.shooterMotor.setVoltage(voltage)
+        self.shooterAmperageTarget = 0
 
     def setFeederSpeed(self, speed):
         '''Sets the percent output of the tower's base feeder motor.'''
