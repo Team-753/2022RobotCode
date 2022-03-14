@@ -15,6 +15,8 @@ class Odometry:
         self.navx.reset()
         self.previousAngle = self.navx.getAngle()
         self.previousTime = time.time()
+        self.velocity = 0
+        self.acceleration = 0
         
         self.displacementX = 0.0
         self.displacementY = 0.0
@@ -32,6 +34,7 @@ class Odometry:
         navxAngle = self.navxToOneEighty(self.navx.getYaw())
         dX = 0
         dY = 0
+        v = 0
         for module in self.swerveModules:
             #print()
             #print(str(module.moduleName))
@@ -56,12 +59,16 @@ class Odometry:
 
             xVelocity = wheelVector[0] - rotationVector[0]
             yVelocity = wheelVector[1] - rotationVector[1]
-
+            v += xVelocity + yVelocity
             dX += xVelocity * dt
             dY += yVelocity * dt
         
         dX /= 4
         dY /= 4
+        v /= 4
+        
+        self.acceleration = (v - self.velocity) / dt
+        self.velocity = v
 
         self.displacementX += dX
         self.displacementY += dY

@@ -48,18 +48,6 @@ class MyRobot(wpilib.TimedRobot):
         #self.climber.zeroEncoders()
         #wpilib.SmartDashboard.putString("Play of the Game", "straightLine")
         
-        self.autonomousSwitches = {
-            "intakeOn": self.intake.carWashOn(),
-            "intakeOff": self.intake.carWashOff(),
-            "intakeReverse": self.intake.carWashReverse(),
-            "lowerIntake": self.intake.setLifterDown(),
-            "raiseIntake": self.intake.setLifterUp(),
-            "revShooter": self.smartAutoShooter(), # TODO: Change this later if not using vision maybe make a self variable that can be passed in to guage the distance to the hub
-            "coastShooter": self.tower.coastShooter(),
-            "indexBall": self.tower.indexer(),
-            "coastBallPath": self.tower.towerCoast()
-        }      
-        
     def disabledInit(self) -> None:
         self.intake.carWashOff()
         self.tower.towerCoast()
@@ -67,9 +55,6 @@ class MyRobot(wpilib.TimedRobot):
         self.angleOffset = wpilib.SmartDashboard.getNumber("NAVX OFFSET", 0)
         return super().disabledInit()
 
-    def smartAutoShooter(self):
-        self.revvingShooter = not(self.revvingShooter)
-    
     def autoActions(self, action):
         actionName = action[0]
         if actionName == "revShooter":

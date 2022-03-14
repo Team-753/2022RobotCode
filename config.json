@@ -91,7 +91,9 @@
   },
   "RobotDefaultSettings": {
     "fieldOrient": true,
-    "robotSpeedLimiter": 0.75
+    "robotSpeedLimiter": 1,
+    "robotVelocityLimit": 3,
+    "robotAccelerationLimit": 1
   },
   "driverStation": {
     "joystickDeadZones": {

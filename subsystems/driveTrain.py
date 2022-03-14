@@ -85,6 +85,20 @@ class driveTrain:
             fRSpeed /= maxSpeed
             rLSpeed /= maxSpeed
             rRSpeed /= maxSpeed
+        acceleration = abs(self.getDriveTrainAcceleration())
+        maxAcceleration = self.config["robotDefaultSettings"]["robotAccelerationLimit"]
+        velocity = abs(self.getDriveTrainVelocity())
+        maxVelocity = self.config["robotDefaultSettings"]["robotVelocityLimit"]
+        if acceleration > maxAcceleration:
+            fLSpeed *= (maxAcceleration / acceleration)
+            fRSpeed *= (maxAcceleration / acceleration)
+            rLSpeed *= (maxAcceleration / acceleration)
+            rRSpeed *= (maxAcceleration / acceleration)
+        elif velocity > maxVelocity:
+            fLSpeed *= (maxVelocity / velocity)
+            fRSpeed *= (maxVelocity / velocity)
+            rLSpeed *= (maxVelocity / velocity)
+            rRSpeed *= (maxVelocity / velocity)
 
         self.swerveModules["frontLeft"].move(fLSpeed, fLAngle)
         self.swerveModules["frontRight"].move(fRSpeed, fRAngle)
@@ -129,3 +143,8 @@ class driveTrain:
     def resetOdometry(self):
         self.odometry.reset()
     
+    def getDriveTrainAcceleration(self):
+        return self.odometry.acceleration
+    
+    def getDriveTrainVelocity(self):
+        return self.odometry.velocity
