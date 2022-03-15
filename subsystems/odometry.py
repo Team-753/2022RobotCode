@@ -59,7 +59,7 @@ class Odometry:
 
             xVelocity = wheelVector[0] - rotationVector[0]
             yVelocity = wheelVector[1] - rotationVector[1]
-            v += xVelocity + yVelocity
+            v += math.hypot(xVelocity, yVelocity)
             dX += xVelocity * dt
             dY += yVelocity * dt
         
