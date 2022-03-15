@@ -35,6 +35,7 @@ class Odometry:
         dX = 0
         dY = 0
         v = 0
+        self.trajectoryAngle = 0
         for module in self.swerveModules:
             #print()
             #print(str(module.moduleName))
@@ -59,6 +60,7 @@ class Odometry:
 
             xVelocity = wheelVector[0] - rotationVector[0]
             yVelocity = wheelVector[1] - rotationVector[1]
+            self.trajectoryAngle += math.atan2(yVelocity, xVelocity)
             v += math.hypot(xVelocity, yVelocity)
             dX += xVelocity * dt
             dY += yVelocity * dt
@@ -66,6 +68,7 @@ class Odometry:
         dX /= 4
         dY /= 4
         v /= 4
+        self.trajectoryAngle /= 4
         
         self.acceleration = (v - self.velocity) / dt
         self.velocity = v
@@ -110,6 +113,9 @@ class Odometry:
         Robot Rotation (in non unit circle degrees)
         '''
         return -self.displacementX, -self.displacementY, self.navxAngleToUnitCircle(self.navxToOneEighty(self.navx.getAngle()))
+    
+    def getRobotTrajectory(self):
+        return self.acceleration, self.velocity, self.trajectoryAngle
     
     def reset(self):
         self.displacementX = 0

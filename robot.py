@@ -13,6 +13,7 @@ from subsystems.intake import Intake
 from subsystems.driveTrain import driveTrain
 from subsystems.tower import Tower
 from controlsystems.autonomous2 import shootAndRun
+from controlsystems.zPID import zPID
 
 cond = threading.Condition()
 notified = False
@@ -147,22 +148,29 @@ class MyRobot(wpilib.TimedRobot):
     
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
-        #self.navx.reset()
-        self.angleOffset = wpilib.SmartDashboard.getNumber("NAVX OFFSET", 0)
+    #self.navx.reset()
+        '''self.angleOffset = wpilib.SmartDashboard.getNumber("NAVX OFFSET", 0)
         #self.angleOffset = -45
         self.autoAngle = self.angleOffset
         self.navx.setAngleAdjustment(self.angleOffset)
         self.driveTrain.fieldOrient = False
         self.auto = shootAndRun()
         self.waiting = False
-        self.Timer.reset()
+        self.Timer.reset()'''
+        self.navx.reset()
+        self.targetAngle = wpilib.SmartDashboard.getNumber("auto angle", 0)
+        self.zPID = zPID(self.navx)
         
 
     def autonomousPeriodic(self):
         '''This function is called periodically during autonomous.'''
-        actionToDo = self.auto.periodic()
-        self.autoActions(actionToDo)
-        #print(actionToDo)
+        '''actionToDo = self.auto.periodic()
+        self.autoActions(actionToDo)'''
+        z = self.zPID.periodic(self.targetAngle)
+        if z != 0:
+            self.driveTrain.move(0, 0, z) # TODO: Use this in teleop where if z input = 0 try to maintain previous robot heading
+        else:
+            self.driveTrain.stationary()
         
         
 
