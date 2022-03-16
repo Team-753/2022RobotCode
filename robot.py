@@ -1,4 +1,3 @@
-from xmlrpc.client import FastMarshaller
 import wpilib
 import json
 import os
@@ -15,6 +14,7 @@ from subsystems.tower import Tower
 from controlsystems.autonomous2 import shootAndRun
 from controlsystems.zPID import zPID
 
+# ! This is important for networktables. I just copied it.
 cond = threading.Condition()
 notified = False
 def connectionListener(connected, info):
@@ -23,40 +23,58 @@ def connectionListener(connected, info):
 		notified = True
 		cond.notify()
 
+# ! I think this is instantiating networktables.
 NetworkTables.initialize()
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True) # this is also broken
 smartDash = NetworkTables.getTable('SmartDashboard')
 
 class MyRobot(wpilib.TimedRobot):
     def robotInit(self):
+        # ! This is camera code copied from J=oe.
         camera = wpilib.CameraServer()
         camera.launch()
         
+        # ! This allows the code to use the config.json file as a normal dictionary.
         folderPath = os.path.dirname(os.path.abspath(__file__))
         filePath = os.path.join(folderPath, 'config.json')
         with open (filePath, "r") as f1:
             self.config = json.load(f1)
+
+        # ! Instantiating all the other files in the controlsystems and subsystems folders.
         self.tower = Tower(self.config)
         self.intake = Intake(self.config)
         self.climber = Climber(self.config)
         self.driverStation = driverStation(self.config)
         self.navx = navx.AHRS.create_spi()
         self.driveTrain = driveTrain(self.config, self.navx)
+        
+        # ! This timer is what Joe uses in his autonomous.
         self.Timer = wpilib.Timer()
         wpilib.SmartDashboard.putNumber("NAVX OFFSET", 0)
-        self.DEBUGSTATEMENTS = True
-        self.revvingShooter = False
-        #self.climber.zeroEncoders()
-        #wpilib.SmartDashboard.putString("Play of the Game", "straightLine")
         
+        # ! This turns on all the smartdashboard and print statements.
+        self.DEBUGSTATEMENTS = True
+        
+        # ! This currently has no uses so I don't know what it is for.
+        self.revvingShooter = False
+        
+        # ! This are commented out and I don't know why.
+        #self.climber.zeroEncoders()
+        
+        # ! I don't know why this is important.
+        #wpilib.SmartDashboard.putString("Play of the Game", "straightLine")
+  
     def disabledInit(self) -> None:
+        # ! This coasts all the motors (except the climber) when disabled. It sets the NAVX angle offset to whatever it is on SmartDashboard for some reason.
         self.intake.carWashOff()
         self.tower.towerCoast()
         self.driveTrain.coast()
         self.angleOffset = wpilib.SmartDashboard.getNumber("NAVX OFFSET", 0)
+        # ! I don't know what this does.
         return super().disabledInit()
 
     def autoActions(self, action):
+        # ! This is Joe's improvised autonomous.
         actionName = action[0]
         if actionName == "revShooter":
             self.tower.shootVariable(action[1])
@@ -124,7 +142,11 @@ class MyRobot(wpilib.TimedRobot):
             elif navxAngle < action[1]:
                 self.driveTrain.move(0, 0, 0.2)
     
+
+
     def getNavxOneEighty(self):
+        # ! This converts numbers in the interval 0 to 360 and changes them to fit the interval -180 to 180. 
+        # ! This helps convert navx angle into something the math module can use.
         angle = self.navx.getAngle()
         angle %= 360
         if angle < -180:
@@ -134,21 +156,28 @@ class MyRobot(wpilib.TimedRobot):
         return angle
     
     def getNavx360(self):
+        # ! This gets the angle of the navx without the extra rotations.
         angle = self.navx.getAngle() - self.angleOffset
         angle %= 360
         return angle
             
+
+
     def testInit(self) -> None:
+        # ! I think Joe used this to set up the robot for autonomous. 
         self.climber.engageHooks()
         self.intake.setLifterUp()
         return super().testInit()
     
     def testPeriodic(self) -> None:
+        # ! I don't know what this does.
         return super().testPeriodic()
     
+
+
     def autonomousInit(self):
         '''This function is run once each time the robot enters autonomous mode.'''
-    #self.navx.reset()
+
         '''self.angleOffset = wpilib.SmartDashboard.getNumber("NAVX OFFSET", 0)
         #self.angleOffset = -45
         self.autoAngle = self.angleOffset
@@ -157,38 +186,57 @@ class MyRobot(wpilib.TimedRobot):
         self.auto = shootAndRun()
         self.waiting = False
         self.Timer.reset()'''
+
+        # ! This resets navx and takes the angle from SmartDashboard and uses it as a parameter in a PID object in the controlsystems folder.
+        # ! The zPID is for the turning during autonomous.
         self.navx.reset()
         self.targetAngle = wpilib.SmartDashboard.getNumber("auto angle", 0)
         self.zPID = zPID(self.navx)
-        
 
     def autonomousPeriodic(self):
-        '''This function is called periodically during autonomous.'''
+        '''This function is called every time the code runs during autonomous.'''
+        
+        # ! Joe's improvised autonomous.
         '''actionToDo = self.auto.periodic()
         self.autoActions(actionToDo)'''
+
+        # ! This uses the method from the zPID object to calculate the z value based on the target angle defined in the init.
+        # ! This method is incomplete.
         z = self.zPID.periodic(self.targetAngle)
         if z != 0:
             self.driveTrain.move(0, 0, z) # TODO: Use this in teleop where if z input = 0 try to maintain previous robot heading
         else:
             self.driveTrain.stationary()
         
-        
+
 
     def teleopInit(self):
+        # ! This sets the target angle for the shoulders. Since they start at 30 degrees the target angle starts at 30 degrees.
         self.shoulderTargetAngle = 30
+
+        # ! This zeroes the shoulder encoders.
         self.climber.leftArm.shoulder.zeroShoulder()
         self.climber.rightArm.shoulder.zeroShoulder()
+
+        # ! Field orient means the robot controls are relative to the field.
         self.driveTrain.fieldOrient = True
         
     def teleopPeriodic(self):
-        '''This function is called periodically during operator control.'''
+        '''This function is called every time the code runs during operator control.'''
+        
+        # ! This switches variable is a dictionary containing switch values, which are either booleans or floats.
+        # ! The default values are written inside the getSwitches() method.
         switches = self.driverStation.checkSwitches()
+
+        # ! This method checks the analog value from the IR sensor and determines whether it is small enough for a ball to be there.
         self.tower.getBallDetected()
         # wpilib.SmartDashboard.putNumber("winch position", self.climber.rightArm.winch.getRotations())
         switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"] = self.evaluateDeadzones((switches["driverX"], switches["driverY"], switches["driverZ"], switches["moveArms"], switches["moveWinches"]))
         
         self.switchActions(switches)
         
+
+
     def disabledPeriodic(self):
         pass
     
@@ -198,6 +246,8 @@ class MyRobot(wpilib.TimedRobot):
         self.tower.coastShooter()
         self.intake.carWashOff()
     
+
+
     def switchActions(self, switchDict: dict):
         ''' Actually acts on and calls commands based on inputs from multiple robot modes '''
         if switchDict["driverX"] != 0 or switchDict["driverY"] != 0 or switchDict["driverZ"] != 0:
@@ -285,6 +335,8 @@ class MyRobot(wpilib.TimedRobot):
         elif switchDict["releasePeterHooks"]:
             self.climber.disengageHooks()
     
+
+
     def evaluateDeadzones(self, inputs):
         adjustedInputs = []
         for idx, input in enumerate(inputs):
@@ -298,6 +350,8 @@ class MyRobot(wpilib.TimedRobot):
             adjustedInputs.append(adjustedValue)
         return adjustedInputs
     
+
+
     def nonEmergencyStop(self):
         ''' Exactly as it says, stops all of the functions of the robot '''
         self.driveTrain.stationary()
