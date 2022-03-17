@@ -193,30 +193,39 @@ class Autonomous:
         rot = self.navx.getAngle() * math.pi / 180
         # print(f"xPos: {xPos}, yPos: {yPos}, rot: {rot}")
         targetPoint = self.generatedPath[self.pathPosition]
+
         if self.waiting == 0:
             wpilib.SmartDashboard.putNumber("targetX", targetPoint["x"])
             wpilib.SmartDashboard.putNumber("targetY", targetPoint["y"])
+
             while self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])[0]:
                 if self.pathPosition == len(self.generatedPath):
                     return 0, 0, 0, ["end"]
+
                 if targetPoint["stop"]:
                     self.waiting = float(targetPoint["actions"][0])
                     self.Timer.start()
+
                     for idx, generatedPoint in enumerate(self.generatedPath[self.pathPosition + 1:], start=self.pathPosition + 1):
                         if idx == len(self.generatedPath):
                             break
+
                         if generatedPoint["stop"]:
                             endPoint = idx
+
                     self.calculateRemainder(0, endPoint)
                     self.OGRemainder = self.pathRemainder
                     return 0, 0, 0, targetPoint["actions"]
+
                 self.pathPosition += 1
                 targetPoint = self.generatedPath[self.pathPosition]
+
             else:
                 if targetPoint["stop"]:
                     self.waiting = float(targetPoint["actions"][0])
                     self.Timer.start()
                     return 0, 0, 0, targetPoint["actions"]
+                    
                 actions = targetPoint["actions"]
                 passed, xDifference, yDifference = self.passedTargetCheck(xPos, yPos, targetPoint["x"], targetPoint["y"])
                 takeAway = self.previousRemainder - math.hypot(abs(xDifference), abs(yDifference))

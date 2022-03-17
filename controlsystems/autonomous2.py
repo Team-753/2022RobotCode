@@ -9,7 +9,7 @@ class shootAndRun:
         self.queue = [["revShooter", 4.5], ["wait", 2], ["indexBall"], ["wait", 2], ["move", (0.15, 0.50, 0), 2.5], ["stationary"], ["indexStop"], ["shooterOff"], ["done"]]
         self.queuePosition = 0
     def periodic(self):
-        # print(self.queuePosition)
+        #print(self.queuePosition)
         if self.queuePosition == len(self.queue):
             return ["done"],
         else:
