@@ -56,11 +56,11 @@ class XboxController(object):
         y = self.deadzone(y)
         z = self.RightJoystickX
         z = self.deadzone(z)
-        v1 = self.RightTrigger
+        v1 = self.RightTrigger # Velocity multiplier for translation which increases speed
         v1 = self.deadzone(v1)
-        v2 = self.RightBumper
-        r = self.B
-        w1 = self.LeftBumper
+        v2 = self.RightBumper # Velocity multiplier for translation which decreases speed
+        r = self.B # Resets the robot back to middle (it can get lost off screen)
+        w1 = self.LeftBumper # Velocity multiplier for rotation which decreases speed
         return [x, y, z, v1, v2, r, w1]
 
 
