@@ -46,14 +46,24 @@ class driverStation:
             "revShooterClose": False
         }
         
-        switches["driverX"] = -self.driverInput.getLeftX()
-        switches["driverY"] = self.driverInput.getLeftY()
-        switches["driverZ"] = self.driverInput.getRightTriggerAxis() - self.driverInput.getLeftTriggerAxis()
+
+
+        translationMultiplier = (self.driverInput.getRightTriggerAxis() + 1)
+        if self.driverInput.getRightBumper():
+            translationMultiplier /= 3
+
+        if self.driverInput.getLeftBumper():
+            rotationMultiplier = 1/3
+        else:
+            rotationMultiplier = 1
+
+        switches["driverX"] = -self.driverInput.getLeftX()*translationMultiplier
+        switches["driverY"] = self.driverInput.getLeftY()*translationMultiplier
+        switches["driverZ"] = self.driverInput.getRightX()*rotationMultiplier
         #switches["swerveAfterburners"] = self.driverInput.getLeftBumper()
         
         if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
             switches["swapFieldOrient"] = True
-        
         
         dPadStateDriver = self.driverInput.getPOV()
         if dPadStateDriver == 90:
@@ -75,34 +85,30 @@ class driverStation:
             switches["winchesIn"] = True
         
 
+
         leftAxis = self.auxiliaryInput.getLeftY()
         if leftAxis > 0.5:
             switches["shoulderCounterClockwise"] = True
         elif leftAxis > 0.5:
             switches["shoulderClockwise"] = True
 
-
         if self.auxiliaryInput.getBackButton():
             switches["armHome"] = True
-        
 
         if self.auxiliaryInput.getRightTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
             switches["revShooter"] = True
         elif self.auxiliaryInput.getLeftTriggerAxis() > self.config["driverStation"]["flywheelTriggerThreshold"]:
             switches["revShooterClose"] = True
         
-
         if self.auxiliaryInput.getLeftBumper() or self.driverInput.getLeftBumper():
             switches["intakeOn"] = True
         
-
         switches["ballSystemOut"] = self.auxiliaryInput.getBButton()
         switches["ballIndexerIn"] = self.auxiliaryInput.getRightBumper() or self.driverInput.getRightBumper()  #will do checks on this later ie: if flywheel is at sufficient rpm and such
         switches["releasePeterHooks"] = self.auxiliaryInput.getYButtonReleased()
         switches["tightenPeterHooks"] = self.auxiliaryInput.getAButtonReleased()
         #switches["testVolts"] = self.auxiliaryInput.getLeftTriggerAxis() * 12
         
-
         if self.auxiliaryInput.getStartButton():
             if self.auxiliaryInput.getPOV() == 90:
                 switches["rightWinchOut"] = True
