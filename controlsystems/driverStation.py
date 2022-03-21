@@ -48,18 +48,10 @@ class driverStation:
         
 
 
-        translationMultiplier = (self.driverInput.getRightTriggerAxis() + 1)
-        if self.driverInput.getRightBumper():
-            translationMultiplier /= 3
 
-        if self.driverInput.getLeftBumper():
-            rotationMultiplier = 1/3
-        else:
-            rotationMultiplier = 1
-
-        switches["driverX"] = -self.driverInput.getLeftX()*translationMultiplier
-        switches["driverY"] = self.driverInput.getLeftY()*translationMultiplier
-        switches["driverZ"] = self.driverInput.getRightX()*rotationMultiplier
+        switches["driverX"] = -self.driverInput.getLeftX()
+        switches["driverY"] = self.driverInput.getLeftY()
+        switches["driverZ"] = self.driverInput.getRightX()
         #switches["swerveAfterburners"] = self.driverInput.getLeftBumper()
         
         if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
