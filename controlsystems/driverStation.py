@@ -47,12 +47,11 @@ class driverStation:
         }
         
 
-        turnSpeed = (1-self.getLeftTrigger())
-        driveSpeed = (1-self.getRightTrigger())
 
-        switches["driverX"] = -self.driverInput.getLeftX()*driveSpeed
-        switches["driverY"] = self.driverInput.getLeftY()*driveSpeed
-        switches["driverZ"] = self.driverInput.getRightX()*turnSpeed
+        switches["driverX"] = -self.driverInput.getLeftX()
+        switches["driverY"] = self.driverInput.getLeftY()
+        switches["driverZ"] = self.driverInput.getRightTriggerAxis() - self.driverInput.getLeftTriggerAxis()
+        
         #switches["swerveAfterburners"] = self.driverInput.getLeftBumper()
         
         if self.driverInput.getBackButtonReleased() and not self.climbCheckOne:
